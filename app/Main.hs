@@ -18,16 +18,26 @@ import           Game
 data MySession = EmptySession
 data MyAppState = DummyAppState (IORef Int)
 
+data GameServer = GameServer {
+    gameList :: MVar [GameState]
+}
+
+-- | initialize the server state
+newServer :: IO GameServer
+newServer = do
+  games <- newMVar []
+  return GameServer {gameList = games}
+
 main :: IO ()
 main = do
         ref <- newIORef 0
-        -- initialSeed <- newStdGen
         spockCfg <- defaultSpockCfg EmptySession PCNoDatabase (DummyAppState ref)
         runSpock 8080 (spock spockCfg app)
 
 app :: SpockM () MySession MyAppState ()
 app = do
-        seed <- liftIO $ getStdGen
+        gameServer <- liftIO newServer
+        seed <- liftIO getStdGen
         let initialDeck = (allcardsDeck,seed)
         currentDeck <- liftIO $ newMVar initialDeck
         get root $
