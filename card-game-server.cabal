@@ -32,6 +32,7 @@ executable card-game-server-exe
                      , random
                      , array
                      , string-conversions
+                     , aeson
   default-language:    Haskell2010
 
 test-suite card-game-server-test
