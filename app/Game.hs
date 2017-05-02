@@ -5,7 +5,7 @@ module Game where
 import           Control.Monad
 import           Control.Monad.ST
 import           Data.Array.ST
-import           Data.List        (delete)
+import           Data.List        (delete, elemIndex, find)
 import           Data.STRef
 import           System.Random
 
@@ -70,14 +70,18 @@ data Player = Player { id    :: Int
                      , state :: PlayerState
                      }
 
-data PlayerState = PlayerState { gameHand :: [Card]
-                               , wasabi   :: Bool
-                               , turn     :: Int
+instance Eq Player where
+    Player id state == Player id' state' = id == id'
+
+data PlayerState = PlayerState { gameHand     :: [Card]
+                               , cardsOnTable :: [Card]
+                               , wasabi       :: Bool
+                               , turn         :: Int
                                } deriving (Show)
 
 data GameState = GameState { round      :: Int
                            , numPlayers :: Int
-                           , players    :: [PlayerState]
+                           , players    :: [Player]
                            , sessionID  :: Int
                            }
 
@@ -90,6 +94,7 @@ takeCardFromPlayer Player{..} card =
     where
         newHand = takeCardFromHand (gameHand state) card
         newState = PlayerState { gameHand = newHand
+                               , cardsOnTable = cardsOnTable state
                                , wasabi = wasabi state
                                , turn = turn state
                                }
@@ -97,7 +102,33 @@ takeCardFromPlayer Player{..} card =
 takeCardFromHand :: [Card] -> Card -> [Card]
 takeCardFromHand gameHand card = delete card gameHand
 
-applyMove :: Player -> Move -> GameState -> GameState
--- applyMove p m gState = state@{newGameState}
---         where newGameState = gameState
-applyMove = undefined
+checkValidMove :: Player -> Move -> GameState -> Bool
+checkValidMove player move game = undefined
+
+applyMove :: Int -> Move -> GameState -> GameState
+applyMove playerIndex m game = newGameState
+        where
+            thisPlayer = Game.players game !! playerIndex
+            -- take the player out of the list
+            -- update the player
+            -- put him back in the list
+            newPlayers = [thisPlayer]
+            newGameState = GameState { round      = Game.round game
+                                     , numPlayers = Game.numPlayers game
+                                     , players    = newPlayers
+                                     , sessionID  = Game.sessionID game
+                                     }
+
+                                     --thisPlayer = find (==p) (Game.players game)
+                                     --newPlayers :: [Player]
+                                     --newPlayers = maybe thisPlayer [p]
+                                     -- case thisPlayer of
+                                     --     Nothing -> newPlayers = [thisPlayer]
+                                     --     Just aPlayer -> newPlayers = [aPlayer]
+                                     -- NOT FINISHED!!!!!
+
+
+-- elemItSelf :: Eq a => a -> [a] -> Maybe a
+-- elemItSelf x [] = Nothing
+-- elemItSelf x (y:ys) | x==y = Just x
+--                     | x/=y = elemItself x ys
