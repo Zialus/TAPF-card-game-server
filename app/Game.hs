@@ -5,7 +5,7 @@ module Game where
 import           Control.Monad
 import           Control.Monad.ST
 import           Data.Array.ST
-import           Data.List        (delete, elemIndex, find)
+import           Data.List        (delete, elemIndex, find, insert)
 import           Data.STRef
 import           System.Random
 
@@ -64,7 +64,7 @@ data Card = Tempura
           | Pudding
           | Wasabi
           | Chopsticks
-          deriving (Show, Eq)
+          deriving (Show, Eq, Ord)
 
 data Player = Player { id    :: Int
                      , state :: PlayerState
@@ -72,6 +72,9 @@ data Player = Player { id    :: Int
 
 instance Eq Player where
     Player id state == Player id' state' = id == id'
+
+instance Ord Player where
+    Player id state <= Player id' state' = id <= id'
 
 data PlayerState = PlayerState { gameHand     :: [Card]
                                , cardsOnTable :: [Card]
@@ -86,10 +89,10 @@ data GameState = GameState { round      :: Int
                            }
 
 data Move = PlayCard Card
-          | SpecialMoveChopStick
+          | SpecialMoveChopStick Card Card
 
-takeCardFromPlayer :: Player -> Card -> Player
-takeCardFromPlayer Player{..} card =
+takeCardFromPlayer :: Card -> Player -> Player
+takeCardFromPlayer card Player{..} =
     Player { id = id , state = newState}
     where
         newHand = takeCardFromHand (gameHand state) card
@@ -105,14 +108,31 @@ takeCardFromHand gameHand card = delete card gameHand
 checkValidMove :: Player -> Move -> GameState -> Bool
 checkValidMove player move game = undefined
 
-applyMove :: Int -> Move -> GameState -> GameState
-applyMove playerIndex m game = newGameState
+applyMoveToPlayer :: Move -> Player -> Player
+applyMoveToPlayer (PlayCard card) player      = takeCardFromPlayer card player
+
+applyMoveToPlayer (SpecialMoveChopStick card1 card2) player = bringChopstickBack playerAfter
+                                            where playerAfter = applyMoveToPlayer (PlayCard card1)
+                                                              $ applyMoveToPlayer (PlayCard card2) player
+
+bringChopstickBack :: Player -> Player
+bringChopstickBack Player{..} = Player {id = id, state = newState}
+                    where
+                        newHand = insert Chopsticks (gameHand state)
+                        newCardsOnTable = delete Chopsticks (cardsOnTable state)
+                        newState = PlayerState { gameHand = newHand
+                                               , cardsOnTable = newCardsOnTable
+                                               , wasabi = wasabi state
+                                               , turn = turn state
+                                               }
+
+applyMoveToGame :: Int -> Move -> GameState -> GameState
+applyMoveToGame playerIndex mv game = newGameState
         where
-            thisPlayer = Game.players game !! playerIndex
-            -- take the player out of the list
-            -- update the player
-            -- put him back in the list
-            newPlayers = [thisPlayer]
+            thisPlayer = players game !! playerIndex -- get the player from the list
+            tempPlayerList = delete thisPlayer (players game) -- remove the player from the list
+            newPlayer = applyMoveToPlayer mv thisPlayer
+            newPlayers = insert newPlayer tempPlayerList  -- put him back in the list
             newGameState = GameState { round      = Game.round game
                                      , numPlayers = Game.numPlayers game
                                      , players    = newPlayers
