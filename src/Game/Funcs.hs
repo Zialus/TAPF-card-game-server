@@ -1,6 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module Game where
+module Game.Funcs where
 
 import           Control.Monad
 import           Control.Monad.ST
@@ -8,6 +8,7 @@ import           Data.Array.ST
 import           Data.List        (delete, elemIndex, find, insert)
 import           Data.STRef
 import           System.Random
+import           Game.Types
 
 -- | Randomly shuffle a list without the IO Monad
 --   /O(N)/
@@ -32,7 +33,6 @@ shuffle' xs gen = runST (do
             newArray :: Int -> [a] -> ST s (STArray s Int a)
             newArray n xs =  newListArray (1,n) xs
 
-type DeckState = ([Card], StdGen)
 
 shuffleDeck :: DeckState -> DeckState
 shuffleDeck (deck,gen) = shuffle' deck gen
@@ -52,44 +52,6 @@ allcardsDeck =     replicate 14  Tempura  ++
                    replicate 6   Wasabi  ++
                    replicate 4   Chopsticks
 
-data Card = Tempura
-          | Sashimi
-          | Dumpling
-          | TwoMaki
-          | ThreeMaki
-          | OneMaki
-          | SalmonNigiri
-          | SquidNigiri
-          | EggNigiri
-          | Pudding
-          | Wasabi
-          | Chopsticks
-          deriving (Show, Eq, Ord)
-
-data Player = Player { id    :: Int
-                     , state :: PlayerState
-                     }
-
-instance Eq Player where
-    Player id state == Player id' state' = id == id'
-
-instance Ord Player where
-    Player id state <= Player id' state' = id <= id'
-
-data PlayerState = PlayerState { gameHand     :: [Card]
-                               , cardsOnTable :: [Card]
-                               , wasabi       :: Bool
-                               , turn         :: Int
-                               } deriving (Show)
-
-data GameState = GameState { round      :: Int
-                           , numPlayers :: Int
-                           , players    :: [Player]
-                           , sessionID  :: Int
-                           }
-
-data Move = PlayCard Card
-          | SpecialMoveChopStick Card Card
 
 takeCardFromPlayer :: Card -> Player -> Player
 takeCardFromPlayer card Player{..} =
@@ -133,10 +95,10 @@ applyMoveToGame playerIndex mv game = newGameState
             tempPlayerList = delete thisPlayer (players game) -- remove the player from the list
             newPlayer = applyMoveToPlayer mv thisPlayer
             newPlayers = insert newPlayer tempPlayerList  -- put him back in the list
-            newGameState = GameState { round      = Game.round game
-                                     , numPlayers = Game.numPlayers game
+            newGameState = GameState { roundN     = roundN game
+                                     , numPlayers = numPlayers game
                                      , players    = newPlayers
-                                     , sessionID  = Game.sessionID game
+                                     , sessionID  = sessionID game
                                      }
 
                                      --thisPlayer = find (==p) (Game.players game)

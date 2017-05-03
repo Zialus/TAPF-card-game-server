@@ -13,7 +13,8 @@ import qualified Data.Text               as T
 import           System.Random
 import           Data.String.Conversions (cs)
 
-import           Game
+import           Game.Funcs
+import           Game.Types
 
 data MySession = EmptySession
 data MyAppState = DummyAppState (IORef Int)
