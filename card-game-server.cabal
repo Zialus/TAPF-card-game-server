@@ -1,7 +1,7 @@
 name:                card-game-server
 version:             0.1.0.0
--- synopsis:
--- description:
+synopsis:            Simple HTTP server for sushi go!
+description:         Sushi Go! is a card game, and this is a server for it!
 homepage:            https://github.com/Zialus/tapf-card-game-webserver#readme
 license:             BSD3
 license-file:        LICENSE
