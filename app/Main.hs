@@ -6,12 +6,13 @@ import           Web.Spock.Config
 
 import           Control.Concurrent.MVar
 import           Control.Monad.Trans
-import           Data.Aeson              (eitherDecode, decode, FromJSON, ToJSON, Object, encode)
+import           Data.Aeson              (FromJSON, Object, ToJSON, decode,
+                                          eitherDecode, encode)
 import           Data.IORef
 import           Data.Monoid
+import           Data.String.Conversions (cs)
 import qualified Data.Text               as T
 import           System.Random
-import           Data.String.Conversions (cs)
 
 import           Game.Funcs
 import           Game.Types
@@ -57,7 +58,7 @@ app = do
             liftIO $ print boodyOfRequest
             let bodyDecoded = eitherDecode $ cs boodyOfRequest :: Either String Object
             case bodyDecoded of
-                Left err -> text $ T.pack err
+                Left err    -> text $ T.pack err
                 Right texto -> text $ cs $ encode texto
             -- t <- jsonBody
             -- case t of

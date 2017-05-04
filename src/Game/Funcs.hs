@@ -7,8 +7,8 @@ import           Control.Monad.ST
 import           Data.Array.ST
 import           Data.List        (delete, elemIndex, find, insert)
 import           Data.STRef
-import           System.Random
 import           Game.Types
+import           System.Random
 
 -- | Randomly shuffle a list without the IO Monad
 --   /O(N)/
