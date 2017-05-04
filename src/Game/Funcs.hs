@@ -16,7 +16,7 @@ shuffle' :: [a] -> StdGen -> ([a],StdGen)
 shuffle' xs gen = runST (do
         g <- newSTRef gen
         let randomRST lohi = do
-              (a,s') <- liftM (randomR lohi) (readSTRef g)
+              (a,s') <- fmap (randomR lohi) (readSTRef g)
               writeSTRef g s'
               return a
         ar <- newArray n xs
@@ -31,7 +31,7 @@ shuffle' xs gen = runST (do
         where
             n = length xs
             newArray :: Int -> [a] -> ST s (STArray s Int a)
-            newArray n xs =  newListArray (1,n) xs
+            newArray n' =  newListArray (1,n')
 
 
 shuffleDeck :: DeckState -> DeckState
@@ -55,7 +55,7 @@ allcardsDeck =     replicate 14  Tempura  ++
 
 takeCardFromPlayer :: Card -> Player -> Player
 takeCardFromPlayer card Player{..} =
-    Player { id = id , state = newState}
+    Player { pid = pid , state = newState}
     where
         newHand = takeCardFromHand (gameHand state) card
         newState = PlayerState { gameHand = newHand
@@ -78,11 +78,11 @@ applyMoveToPlayer (SpecialMoveChopStick card1 card2) player = bringChopstickBack
                                                               $ applyMoveToPlayer (PlayCard card2) player
 
 bringChopstickBack :: Player -> Player
-bringChopstickBack Player{..} = Player {id = id, state = newState}
+bringChopstickBack Player{..} = Player {pid = pid, state = newState}
                     where
                         newHand = insert Chopsticks (gameHand state)
                         newCardsOnTable = delete Chopsticks (cardsOnTable state)
-                        updateState _state = _state { cardsOnTable = newCardsOnTable}
+                        updateState _state = _state { cardsOnTable = newCardsOnTable, gameHand = newHand}
                         newState = updateState state
                         -- newState = PlayerState { gameHand = newHand
                         --                        , cardsOnTable = newCardsOnTable
@@ -97,11 +97,13 @@ applyMoveToGame playerIndex mv game = newGameState
             tempPlayerList = delete thisPlayer (players game) -- remove the player from the list
             newPlayer = applyMoveToPlayer mv thisPlayer
             newPlayers = insert newPlayer tempPlayerList  -- put him back in the list
-            newGameState = GameState { roundN     = roundN game
-                                     , numPlayers = numPlayers game
-                                     , players    = newPlayers
-                                     , sessionID  = sessionID game
-                                     }
+            updateState _game = _game {players = newPlayers}
+            newGameState = updateState game
+            -- newGameState = GameState { roundN     = roundN game
+            --                          , numPlayers = numPlayers game
+            --                          , players    = newPlayers
+            --                          , sessionID  = sessionID game
+            --                          }
 
                                      --thisPlayer = find (==p) (Game.players game)
                                      --newPlayers :: [Player]

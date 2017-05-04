@@ -18,15 +18,15 @@ data Card = Tempura
           | Chopsticks
           deriving (Show, Eq, Ord)
 
-data Player = Player { id    :: Int
+data Player = Player { pid   :: Int
                      , state :: PlayerState
-                     }
+                     } deriving (Show)
 
 instance Eq Player where
-    Player id1 _state1 == Player id2 _state2 = id1 == id2
+    Player pid1 _state1 == Player pid2 _state2 = pid1 == pid2
 
 instance Ord Player where
-    Player id1 _state1 <= Player id2 _state2 = id1 <= id2
+    Player pid1 _state1 <= Player pid2 _state2 = pid1 <= pid2
 
 data PlayerState = PlayerState { gameHand     :: [Card]
                                , cardsOnTable :: [Card]
@@ -38,7 +38,7 @@ data GameState = GameState { roundN     :: Int
                            , numPlayers :: Int
                            , players    :: [Player]
                            , sessionID  :: Int
-                           }
+                           } deriving (Show)
 
 data Move = PlayCard Card
           | SpecialMoveChopStick Card Card
