@@ -82,11 +82,13 @@ bringChopstickBack Player{..} = Player {id = id, state = newState}
                     where
                         newHand = insert Chopsticks (gameHand state)
                         newCardsOnTable = delete Chopsticks (cardsOnTable state)
-                        newState = PlayerState { gameHand = newHand
-                                               , cardsOnTable = newCardsOnTable
-                                               , wasabi = wasabi state
-                                               , turn = turn state
-                                               }
+                        updateState _state = _state { cardsOnTable = newCardsOnTable}
+                        newState = updateState state
+                        -- newState = PlayerState { gameHand = newHand
+                        --                        , cardsOnTable = newCardsOnTable
+                        --                        , wasabi = wasabi state
+                        --                        , turn = turn state
+                        --                        }
 
 applyMoveToGame :: Int -> Move -> GameState -> GameState
 applyMoveToGame playerIndex mv game = newGameState

@@ -1,12 +1,5 @@
-{-# LANGUAGE RecordWildCards #-}
-
 module Game.Types where
 
-import           Control.Monad
-import           Control.Monad.ST
-import           Data.Array.ST
-import           Data.List        (delete, elemIndex, find, insert)
-import           Data.STRef
 import           System.Random
 
 type DeckState = ([Card], StdGen)
@@ -30,10 +23,10 @@ data Player = Player { id    :: Int
                      }
 
 instance Eq Player where
-    Player id state == Player id' state' = id == id'
+    Player id1 _state1 == Player id2 _state2 = id1 == id2
 
 instance Ord Player where
-    Player id state <= Player id' state' = id <= id'
+    Player id1 _state1 <= Player id2 _state2 = id1 <= id2
 
 data PlayerState = PlayerState { gameHand     :: [Card]
                                , cardsOnTable :: [Card]
