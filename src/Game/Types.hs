@@ -2,7 +2,8 @@ module Game.Types where
 
 import           System.Random
 
-type DeckState = ([Card], StdGen)
+type Deck = [Card]
+type DeckState = (Deck, StdGen)
 
 data Card = Tempura
           | Sashimi
@@ -28,13 +29,14 @@ instance Eq Player where
 instance Ord Player where
     Player pid1 _state1 <= Player pid2 _state2 = pid1 <= pid2
 
-data PlayerState = PlayerState { gameHand     :: [Card]
-                               , cardsOnTable :: [Card]
+data PlayerState = PlayerState { gameHand     :: Deck
+                               , cardsOnTable :: Deck
                                , wasabi       :: Bool
                                , turn         :: Int
                                } deriving (Show)
 
-data GameState = GameState { roundN     :: Int
+data GameState = GameState { deckState  :: DeckState
+                           , roundN     :: Int
                            , numPlayers :: Int
                            , players    :: [Player]
                            , sessionID  :: Int
