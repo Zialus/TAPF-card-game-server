@@ -35,6 +35,25 @@ shuffle' xs gen = runST (do
             newArray' n' =  newListArray (1,n')
 
 
+distributeCards :: GameState -> GameState
+distributeCards game@GameState{..} = exitState
+                    where howManyCarrds = lookup numPlayers amountToDistributeList
+                          shuffledDeck = shuffleDeck deckState
+                          updateState _state = _state {deckState = shuffledDeck}
+                          exitState = updateState game
+
+amountToDistributeList :: [(Int,Int)]
+amountToDistributeList = [(2,10),(3,9),(4,8),(5,7)]
+
+-- removes from a deck the number of puddings played in a round
+deckForNextRound :: DeckState -> Int -> DeckState
+deckForNextRound (deck,state) nPuddings = newDeckShuffled
+                where newDeck = iterateNTimes nPuddings (delete Pudding) deck
+                      newDeckShuffled = shuffleDeck (newDeck,state)
+
+iterateNTimes :: Int -> (a -> a) -> a -> a
+iterateNTimes n f x = iterate f x !! n
+
 shuffleDeck :: DeckState -> DeckState
 shuffleDeck (deck,gen) = shuffle' deck gen
 
@@ -59,11 +78,13 @@ takeCardFromPlayer card Player{..} =
     Player { pid = pid , state = newState}
     where
         newHand = takeCardFromHand (gameHand state) card
-        newState = PlayerState { gameHand = newHand
-                               , cardsOnTable = cardsOnTable state
-                               , wasabi = wasabi state
-                               , turn = turn state
-                               }
+        update _state = _state { gameHand = newHand}
+        newState = update state
+        -- newState = PlayerState { gameHand = newHand
+        --                        , cardsOnTable = cardsOnTable state
+        --                        , wasabi = wasabi state
+        --                        , turn = turn state
+        --                        }
 
 takeCardFromHand :: [Card] -> Card -> [Card]
 takeCardFromHand gameHand card = delete card gameHand
