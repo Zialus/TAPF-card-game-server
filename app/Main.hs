@@ -20,8 +20,9 @@ import           Game.Types
 data MySession = EmptySession
 data MyAppState = DummyAppState (IORef Int)
 
+type SessionID = Int
 data GameServer = GameServer {
-    gameList :: MVar [GameState]
+    gameList :: MVar [(SessionID, GameState)]
 }
 
 -- | initialize the server state

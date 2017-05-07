@@ -39,7 +39,6 @@ data GameState = GameState { deckState  :: DeckState
                            , roundN     :: Int
                            , numPlayers :: Int
                            , players    :: [Player]
-                           , sessionID  :: Int
                            } deriving (Show)
 
 data Move = PlayCard Card
