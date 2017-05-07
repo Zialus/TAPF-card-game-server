@@ -6,10 +6,10 @@ import           Control.Monad
 import           Control.Monad.ST
 import           Data.Array.ST
 import           Data.List        (delete, elemIndex, find, insert)
+import           Data.Maybe
 import           Data.STRef
 import           Game.Types
 import           System.Random
-
 
 -- | Randomly shuffle a list without the IO Monad
 --   /O(N)/
@@ -35,15 +35,33 @@ shuffle' xs gen = runST (do
             newArray' n' =  newListArray (1,n')
 
 
+giveCardsToPlayer :: Deck -> Player -> Int -> (Deck,Player)
+giveCardsToPlayer deck player@Player{..} cardAmount = (exitDeck,exitPlayer)
+                                where currentPlayerHand = gameHand state
+                                      playerHandAfter = take cardAmount deck
+                                      exitDeck = drop cardAmount deck
+                                    --   updateState _state = _state {gameHand = playerHandAfter}
+                                    --   exitState = updateState state
+                                      exitState = state {gameHand = playerHandAfter}
+                                      exitPlayer = player {state = exitState }
+
+giveCardsToPlayers :: DeckState -> [Player] -> Int -> (DeckState,[Player])
+giveCardsToPlayers (deckcards,deckstate) playerList amountOfCards = (exitState,exitPlayerList)
+                            where amount = length playerList
+                                  (exitState, exitPlayerList) = ( (deckcards,deckstate), playerList )    -- iterateNTimes amount giveCardsToPlayer amountOfCards
+                                  result = giveCardsToPlayer deckcards (head playerList) amountOfCards
+
 distributeCards :: GameState -> GameState
 distributeCards game@GameState{..} = exitState
-                    where howManyCarrds = lookup numPlayers amountToDistributeList
+                    where howManyCards = lookup numPlayers amountToDistributeMap
                           shuffledDeck = shuffleDeck deckState
-                          updateState _state = _state {deckState = shuffledDeck}
-                          exitState = updateState game
+                          (deckAfterRemovingCards,playerList) = giveCardsToPlayers deckState players (fromMaybe (error "Invalid number of players") howManyCards)
+                        --   updateState _state = _state {deckState = deckAfterRemovingCards}
+                        --   exitState = updateState game
+                          exitState = game {deckState = deckAfterRemovingCards, players = playerList}
 
-amountToDistributeList :: [(Int,Int)]
-amountToDistributeList = [(2,10),(3,9),(4,8),(5,7)]
+amountToDistributeMap :: [(Int,Int)]
+amountToDistributeMap = [(2,10),(3,9),(4,8),(5,7)]
 
 -- removes from a deck the number of puddings played in a round
 deckForNextRound :: DeckState -> Int -> DeckState
@@ -74,12 +92,12 @@ allcardsDeck =     replicate 14  Tempura  ++
 
 
 takeCardFromPlayer :: Card -> Player -> Player
-takeCardFromPlayer card Player{..} =
-    Player { pid = pid , state = newState}
+takeCardFromPlayer card player@Player{..} = player {state = newState}
     where
         newHand = takeCardFromHand (gameHand state) card
-        update _state = _state { gameHand = newHand}
-        newState = update state
+        -- update _state = _state { gameHand = newHand}
+        -- newState = update state
+        newState = state {gameHand = newHand}
         -- newState = PlayerState { gameHand = newHand
         --                        , cardsOnTable = cardsOnTable state
         --                        , wasabi = wasabi state
@@ -93,8 +111,7 @@ checkValidMove :: Player -> Move -> GameState -> Bool
 checkValidMove player move game = undefined
 
 applyMoveToPlayer :: Move -> Player -> Player
-applyMoveToPlayer (PlayCard card) player      = takeCardFromPlayer card player
-
+applyMoveToPlayer (PlayCard card) player                    = takeCardFromPlayer card player
 applyMoveToPlayer (SpecialMoveChopStick card1 card2) player = bringChopstickBack playerAfter
                                             where playerAfter = applyMoveToPlayer (PlayCard card1)
                                                               $ applyMoveToPlayer (PlayCard card2) player
@@ -104,8 +121,9 @@ bringChopstickBack Player{..} = Player {pid = pid, state = newState}
                     where
                         newHand = insert Chopsticks (gameHand state)
                         newCardsOnTable = delete Chopsticks (cardsOnTable state)
-                        updateState _state = _state { cardsOnTable = newCardsOnTable, gameHand = newHand}
-                        newState = updateState state
+                        -- updateState _state = _state { cardsOnTable = newCardsOnTable, gameHand = newHand}
+                        -- newState = updateState state
+                        newState = state {cardsOnTable = newCardsOnTable, gameHand = newHand}
                         -- newState = PlayerState { gameHand = newHand
                         --                        , cardsOnTable = newCardsOnTable
                         --                        , wasabi = wasabi state
@@ -119,8 +137,9 @@ applyMoveToGame playerIndex mv game = newGameState
             tempPlayerList = delete thisPlayer (players game) -- remove the player from the list
             newPlayer = applyMoveToPlayer mv thisPlayer
             newPlayers = insert newPlayer tempPlayerList  -- put him back in the list
-            updateState _game = _game {players = newPlayers}
-            newGameState = updateState game
+            -- updateState _game = _game {players = newPlayers}
+            -- newGameState = updateState game
+            newGameState = game {players = newPlayers}
             -- newGameState = GameState { roundN     = roundN game
             --                          , numPlayers = numPlayers game
             --                          , players    = newPlayers
