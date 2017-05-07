@@ -14,6 +14,7 @@ import           Data.String.Conversions (cs)
 import qualified Data.Text               as T
 import           System.Random
 
+import           Game.Data
 import           Game.Funcs
 import           Game.Types
 

@@ -4,12 +4,16 @@ module Game.Funcs where
 
 import           Control.Monad
 import           Control.Monad.ST
+
 import           Data.Array.ST
 import           Data.List        (delete, elemIndex, find, insert)
 import           Data.Maybe
 import           Data.STRef
-import           Game.Types
+
 import           System.Random
+
+import           Game.Data
+import           Game.Types
 
 -- | Randomly shuffle a list without the IO Monad
 --   /O(N)/
@@ -74,22 +78,6 @@ iterateNTimes n f x = iterate f x !! n
 
 shuffleDeck :: DeckState -> DeckState
 shuffleDeck (deck,gen) = shuffle' deck gen
-
-
-allcardsDeck :: [Card]
-allcardsDeck =     replicate 14  Tempura  ++
-                   replicate 14  Sashimi  ++
-                   replicate 14  Dumpling  ++
-                   replicate 12  TwoMaki  ++
-                   replicate 8   ThreeMaki  ++
-                   replicate 6   OneMaki  ++
-                   replicate 10  SalmonNigiri  ++
-                   replicate 5   SquidNigiri  ++
-                   replicate 5   EggNigiri  ++
-                   replicate 10  Pudding  ++
-                   replicate 6   Wasabi  ++
-                   replicate 4   Chopsticks
-
 
 takeCardFromPlayer :: Card -> Player -> Player
 takeCardFromPlayer card player@Player{..} = player {state = newState}

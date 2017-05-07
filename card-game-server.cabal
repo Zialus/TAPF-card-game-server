@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib, Game.Funcs, Game.Types
+  exposed-modules:     Lib, Game.Funcs, Game.Types, Game.Data
   build-depends:       base >= 4 && < 5
                       , random
                       , array
