@@ -53,13 +53,21 @@ giveCardsToPlayer deck player@Player{..} cardAmount = (exitDeck,exitPlayer)
             exitState = state {gameHand = playerHandAfter}
             exitPlayer = player {state = exitState }
 
+auxToIterate :: (Int, Int, [Player], DeckState) -> (Int,Int,[Player],DeckState)
+auxToIterate (cardsAmount, indexOfPlayer, playerList, (deckcards,deckstate)) = (cardsAmount,nextIndex,exitPlayerList,exitDeckState)
+        where
+            playerToReceiveCards = playerList !! indexOfPlayer -- get the player from the list
+            tempPlayerList = delete playerToReceiveCards playerList -- remove the players from the list
+            (deckAfter,playerAfter) = giveCardsToPlayer deckcards playerToReceiveCards cardsAmount -- update the player and deck
+            exitPlayerList = insert playerAfter tempPlayerList -- put the player back in the list
+            exitDeckState = (deckAfter,deckstate)
+            nextIndex = indexOfPlayer + 1
 
 giveCardsToPlayers :: DeckState -> [Player] -> Int -> (DeckState,[Player])
 giveCardsToPlayers (deckcards,deckstate) playerList amountOfCards = (exitState,exitPlayerList)
         where
             amount = length playerList
-            (exitState, exitPlayerList) = ( (deckcards,deckstate), playerList )    -- iterateNTimes amount giveCardsToPlayer amountOfCards
-            result = giveCardsToPlayer deckcards (head playerList) amountOfCards
+            (_,_, exitPlayerList,exitState) = iterateNTimes amount auxToIterate (amountOfCards, 0, playerList, (deckcards,deckstate))
 
 
 distributeCards :: GameState -> GameState
