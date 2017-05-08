@@ -16,6 +16,9 @@ allcardsDeck =     replicate 14  Tempura  ++
                    replicate 6   Wasabi  ++
                    replicate 4   Chopsticks
 
+amountToDistributeMap :: [(Int,Int)]
+amountToDistributeMap = [(2,10),(3,9),(4,8),(5,7)]
+
 player1 :: Player
 player1 = Player {pid = 21312, state = undefined}
 

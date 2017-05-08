@@ -15,6 +15,9 @@ import           System.Random
 import           Game.Data
 import           Game.Types
 
+iterateNTimes :: Int -> (a -> a) -> a -> a
+iterateNTimes n f x = iterate f x !! n
+
 -- | Randomly shuffle a list without the IO Monad
 --   /O(N)/
 shuffle' :: [a] -> StdGen -> ([a],StdGen)
@@ -47,12 +50,14 @@ giveCardsToPlayer deck player@Player{..} cardAmount = (exitDeck,exitPlayer)
             exitState = state {gameHand = playerHandAfter}
             exitPlayer = player {state = exitState }
 
+
 giveCardsToPlayers :: DeckState -> [Player] -> Int -> (DeckState,[Player])
 giveCardsToPlayers (deckcards,deckstate) playerList amountOfCards = (exitState,exitPlayerList)
         where
             amount = length playerList
             (exitState, exitPlayerList) = ( (deckcards,deckstate), playerList )    -- iterateNTimes amount giveCardsToPlayer amountOfCards
             result = giveCardsToPlayer deckcards (head playerList) amountOfCards
+
 
 distributeCards :: GameState -> GameState
 distributeCards game@GameState{..} = exitState
@@ -63,8 +68,6 @@ distributeCards game@GameState{..} = exitState
             (deckAfterRemovingCards,playerList) = giveCardsToPlayers shuffledDeck players howManyCards
             exitState = game {deckState = deckAfterRemovingCards, players = playerList}
 
-amountToDistributeMap :: [(Int,Int)]
-amountToDistributeMap = [(2,10),(3,9),(4,8),(5,7)]
 
 -- removes from a deck the number of puddings played in a round
 removePuddings :: Deck -> Int -> Deck
@@ -72,8 +75,10 @@ removePuddings deck nPuddings = newDeck
         where
             newDeck = iterateNTimes nPuddings (delete Pudding) deck
 
+
 calculatePuddings :: GameState -> Int
 calculatePuddings = undefined
+
 
 deckForNextRound :: GameState -> DeckState
 deckForNextRound gs@GameState{..} = newDeck
@@ -83,6 +88,7 @@ deckForNextRound gs@GameState{..} = newDeck
             deckWithLessPudding = removePuddings deck puddingAmount
             newDeck = shuffleDeck (deckWithLessPudding,state)
 
+
 nextRound :: GameState -> GameState
 nextRound gs = nextRoundGameState
         where
@@ -90,11 +96,10 @@ nextRound gs = nextRoundGameState
             nextDeck = deckForNextRound gs
             nextRoundGameState = gs {roundN = nextRoundN, deckState = nextDeck}
 
-iterateNTimes :: Int -> (a -> a) -> a -> a
-iterateNTimes n f x = iterate f x !! n
 
 shuffleDeck :: DeckState -> DeckState
 shuffleDeck (deck,gen) = shuffle' deck gen
+
 
 takeCardFromPlayer :: Card -> Player -> Player
 takeCardFromPlayer card player@Player{..} = player {state = newState}
@@ -102,17 +107,21 @@ takeCardFromPlayer card player@Player{..} = player {state = newState}
             newHand = takeCardFromHand (gameHand state) card
             newState = state {gameHand = newHand}
 
+
 takeCardFromHand :: [Card] -> Card -> [Card]
 takeCardFromHand gameHand card = delete card gameHand
 
+
 checkValidMove :: Player -> Move -> GameState -> Bool
 checkValidMove player move game = undefined
+
 
 applyMoveToPlayer :: Move -> Player -> Player
 applyMoveToPlayer (PlayCard card) player                    = takeCardFromPlayer card player
 applyMoveToPlayer (SpecialMoveChopStick card1 card2) player = bringChopstickBack playerAfter
         where
             playerAfter = applyMoveToPlayer (PlayCard card1) $ applyMoveToPlayer (PlayCard card2) player
+
 
 bringChopstickBack :: Player -> Player
 bringChopstickBack Player{..} = Player {pid = pid, state = newState}
@@ -130,7 +139,6 @@ whoseTurn currentPlayer playerList = nextPlayer
             numberOfPlayers = length playerList
             nextPlayerIndex = (playerIndex + 1) `mod` numberOfPlayers
             nextPlayer = playerList !! nextPlayerIndex
-
 
 
 applyMoveToGame :: Player -> Move -> GameState -> GameState
