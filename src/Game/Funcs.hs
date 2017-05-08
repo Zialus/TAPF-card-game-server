@@ -41,8 +41,7 @@ shuffle' xs gen = runST (do
 
 giveCardsToPlayer :: Deck -> Player -> Int -> (Deck,Player)
 giveCardsToPlayer deck player@Player{..} cardAmount = (exitDeck,exitPlayer)
-                                where currentPlayerHand = gameHand state
-                                      playerHandAfter = take cardAmount deck
+                                where playerHandAfter = take cardAmount deck
                                       exitDeck = drop cardAmount deck
                                       exitState = state {gameHand = playerHandAfter}
                                       exitPlayer = player {state = exitState }
@@ -55,9 +54,10 @@ giveCardsToPlayers (deckcards,deckstate) playerList amountOfCards = (exitState,e
 
 distributeCards :: GameState -> GameState
 distributeCards game@GameState{..} = exitState
-                    where howManyCards = lookup numPlayers amountToDistributeMap
+                    where howManyCardsTemp = lookup numPlayers amountToDistributeMap
+                          howManyCards = fromMaybe (error "Invalid number of players") howManyCardsTemp
                           shuffledDeck = shuffleDeck deckState
-                          (deckAfterRemovingCards,playerList) = giveCardsToPlayers deckState players (fromMaybe (error "Invalid number of players") howManyCards)
+                          (deckAfterRemovingCards,playerList) = giveCardsToPlayers shuffledDeck players howManyCards
                           exitState = game {deckState = deckAfterRemovingCards, players = playerList}
 
 amountToDistributeMap :: [(Int,Int)]
