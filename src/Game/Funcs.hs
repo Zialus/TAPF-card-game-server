@@ -18,6 +18,9 @@ import           Game.Types
 iterateNTimes :: Int -> (a -> a) -> a -> a
 iterateNTimes n f x = iterate f x !! n
 
+count :: Eq a => a -> [a] -> Int
+count x =  length . filter (==x)
+
 -- | Randomly shuffle a list without the IO Monad
 --   /O(N)/
 shuffle' :: [a] -> StdGen -> ([a],StdGen)
@@ -75,9 +78,15 @@ removePuddings deck nPuddings = newDeck
             newDeck = iterateNTimes nPuddings (delete Pudding) deck
 
 
-calculatePuddings :: GameState -> Int
-calculatePuddings = undefined
+findPuddings :: Player -> Int
+findPuddings Player{..} = count Pudding (cardsOnTable state)
 
+
+calculatePuddings :: GameState -> Int
+calculatePuddings GameState{..} = amountOfPuddings
+        where
+            puddingsPerPlayer = map findPuddings players
+            amountOfPuddings = sum puddingsPerPlayer
 
 deckForNextRound :: GameState -> DeckState
 deckForNextRound gs@GameState{..} = newDeck
