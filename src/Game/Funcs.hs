@@ -44,8 +44,6 @@ giveCardsToPlayer deck player@Player{..} cardAmount = (exitDeck,exitPlayer)
                                 where currentPlayerHand = gameHand state
                                       playerHandAfter = take cardAmount deck
                                       exitDeck = drop cardAmount deck
-                                    --   updateState _state = _state {gameHand = playerHandAfter}
-                                    --   exitState = updateState state
                                       exitState = state {gameHand = playerHandAfter}
                                       exitPlayer = player {state = exitState }
 
@@ -60,18 +58,31 @@ distributeCards game@GameState{..} = exitState
                     where howManyCards = lookup numPlayers amountToDistributeMap
                           shuffledDeck = shuffleDeck deckState
                           (deckAfterRemovingCards,playerList) = giveCardsToPlayers deckState players (fromMaybe (error "Invalid number of players") howManyCards)
-                        --   updateState _state = _state {deckState = deckAfterRemovingCards}
-                        --   exitState = updateState game
                           exitState = game {deckState = deckAfterRemovingCards, players = playerList}
 
 amountToDistributeMap :: [(Int,Int)]
 amountToDistributeMap = [(2,10),(3,9),(4,8),(5,7)]
 
 -- removes from a deck the number of puddings played in a round
-deckForNextRound :: DeckState -> Int -> DeckState
-deckForNextRound (deck,state) nPuddings = newDeckShuffled
+removePuddings :: Deck -> Int -> Deck
+removePuddings deck nPuddings = newDeck
                 where newDeck = iterateNTimes nPuddings (delete Pudding) deck
-                      newDeckShuffled = shuffleDeck (newDeck,state)
+
+calculatePuddings :: GameState -> Int
+calculatePuddings = undefined
+
+deckForNextRound :: GameState -> DeckState
+deckForNextRound gs@GameState{..} = newDeck
+                            where (deck,state) = deckState
+                                  puddingAmount = calculatePuddings gs
+                                  deckWithLessPudding = removePuddings deck puddingAmount
+                                  newDeck = shuffleDeck (deckWithLessPudding,state)
+
+nextRound :: GameState -> GameState
+nextRound gs = nextRoundGameState
+        where nextRoundN = roundN gs + 1
+              nextDeck = deckForNextRound gs
+              nextRoundGameState = gs {roundN = nextRoundN, deckState = nextDeck}
 
 iterateNTimes :: Int -> (a -> a) -> a -> a
 iterateNTimes n f x = iterate f x !! n
@@ -83,14 +94,7 @@ takeCardFromPlayer :: Card -> Player -> Player
 takeCardFromPlayer card player@Player{..} = player {state = newState}
     where
         newHand = takeCardFromHand (gameHand state) card
-        -- update _state = _state { gameHand = newHand}
-        -- newState = update state
         newState = state {gameHand = newHand}
-        -- newState = PlayerState { gameHand = newHand
-        --                        , cardsOnTable = cardsOnTable state
-        --                        , wasabi = wasabi state
-        --                        , turn = turn state
-        --                        }
 
 takeCardFromHand :: [Card] -> Card -> [Card]
 takeCardFromHand gameHand card = delete card gameHand
@@ -100,6 +104,7 @@ checkValidMove player move game = undefined
 
 applyMoveToPlayer :: Move -> Player -> Player
 applyMoveToPlayer (PlayCard card) player                    = takeCardFromPlayer card player
+
 applyMoveToPlayer (SpecialMoveChopStick card1 card2) player = bringChopstickBack playerAfter
                                             where playerAfter = applyMoveToPlayer (PlayCard card1)
                                                               $ applyMoveToPlayer (PlayCard card2) player
@@ -109,41 +114,26 @@ bringChopstickBack Player{..} = Player {pid = pid, state = newState}
                     where
                         newHand = insert Chopsticks (gameHand state)
                         newCardsOnTable = delete Chopsticks (cardsOnTable state)
-                        -- updateState _state = _state { cardsOnTable = newCardsOnTable, gameHand = newHand}
-                        -- newState = updateState state
                         newState = state {cardsOnTable = newCardsOnTable, gameHand = newHand}
-                        -- newState = PlayerState { gameHand = newHand
-                        --                        , cardsOnTable = newCardsOnTable
-                        --                        , wasabi = wasabi state
-                        --                        , turn = turn state
-                        --                        }
-
-applyMoveToGame :: Int -> Move -> GameState -> GameState
-applyMoveToGame playerIndex mv game = newGameState
-        where
-            thisPlayer = players game !! playerIndex -- get the player from the list
-            tempPlayerList = delete thisPlayer (players game) -- remove the player from the list
-            newPlayer = applyMoveToPlayer mv thisPlayer
-            newPlayers = insert newPlayer tempPlayerList  -- put him back in the list
-            -- updateState _game = _game {players = newPlayers}
-            -- newGameState = updateState game
-            newGameState = game {players = newPlayers}
-            -- newGameState = GameState { roundN     = roundN game
-            --                          , numPlayers = numPlayers game
-            --                          , players    = newPlayers
-            --                          , sessionID  = sessionID game
-            --                          }
-
-                                     --thisPlayer = find (==p) (Game.players game)
-                                     --newPlayers :: [Player]
-                                     --newPlayers = maybe thisPlayer [p]
-                                     -- case thisPlayer of
-                                     --     Nothing -> newPlayers = [thisPlayer]
-                                     --     Just aPlayer -> newPlayers = [aPlayer]
-                                     -- NOT FINISHED!!!!!
 
 
--- elemItSelf :: Eq a => a -> [a] -> Maybe a
--- elemItSelf x [] = Nothing
--- elemItSelf x (y:ys) | x==y = Just x
---                     | x/=y = elemItself x ys
+whoseTurn :: Player -> [Player] -> Player
+whoseTurn currentPlayer playerList = nextPlayer
+    where
+        maybePlayerIndex = elemIndex currentPlayer playerList
+        playerIndex = fromMaybe (error "couldn't find the index of the player") maybePlayerIndex
+        numberOfPlayers = length playerList
+        nextPlayerIndex = (playerIndex + 1) `mod` numberOfPlayers
+        nextPlayer = playerList !! nextPlayerIndex
+
+
+
+applyMoveToGame :: Player -> Move -> GameState -> GameState
+applyMoveToGame p mv gs@GameState{..} = newGameState
+    where
+        thisPlayer = find (==p) players-- get the player from the list
+        foundThisPlayer = fromMaybe (error "couldn't find the player in the list") thisPlayer
+        tempPlayerList = delete foundThisPlayer players -- remove the player from the list
+        newPlayer = applyMoveToPlayer mv foundThisPlayer -- update player by applying the changes generated by game move
+        newPlayers = insert newPlayer tempPlayerList  -- put him back in the list
+        newGameState = gs {players = newPlayers}
