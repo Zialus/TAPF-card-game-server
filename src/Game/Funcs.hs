@@ -69,7 +69,6 @@ distributeCards game@GameState{..} = exitState
             exitState = game {deckState = deckAfterRemovingCards, players = playerList}
 
 
--- removes from a deck the number of puddings played in a round
 removePuddings :: Deck -> Int -> Deck
 removePuddings deck nPuddings = newDeck
         where
@@ -83,22 +82,37 @@ calculatePuddings = undefined
 deckForNextRound :: GameState -> DeckState
 deckForNextRound gs@GameState{..} = newDeck
         where
-            (deck,state) = deckState
-            puddingAmount = calculatePuddings gs
-            deckWithLessPudding = removePuddings deck puddingAmount
-            newDeck = shuffleDeck (deckWithLessPudding,state)
+            (deck,state) = (allcardsDeck,state) -- put all cards back in the deck
+            puddingAmount = calculatePuddings gs -- find out how many pudding cards where played in the previous round
+            deckWithLessPudding = removePuddings deck puddingAmount -- remove the pudding cards
+            newDeck = shuffleDeck (deckWithLessPudding,state) -- deck is ready to be suffled and sent back for the next round
 
+
+cleanPlayer :: Player -> Player
+cleanPlayer player@Player{..} = newPlayer
+        where
+            newPlayerState = state {gameHand = []}
+            newPlayer = player {state = newPlayerState}
 
 nextRound :: GameState -> GameState
-nextRound gs = nextRoundGameState
+nextRound gs@GameState{..} = nextRoundGameState
         where
-            nextRoundN = roundN gs + 1
-            nextDeck = deckForNextRound gs
-            nextRoundGameState = gs {roundN = nextRoundN, deckState = nextDeck}
+            nextRoundN = roundN + 1 -- increase the roundNumber
+            nextDeck = deckForNextRound gs -- do the necessary changes on the game deck
+            nextPlayers = map cleanPlayer players -- clean Players Game Hands
+            nextRoundGameState = gs {roundN = nextRoundN, deckState = nextDeck, players = nextPlayers}
 
 
 shuffleDeck :: DeckState -> DeckState
 shuffleDeck (deck,gen) = shuffle' deck gen
+
+
+bringChopstickBack :: Player -> Player
+bringChopstickBack Player{..} = Player {pid = pid, state = newState}
+        where
+            newHand = insert Chopsticks (gameHand state)
+            newCardsOnTable = delete Chopsticks (cardsOnTable state)
+            newState = state {cardsOnTable = newCardsOnTable, gameHand = newHand}
 
 
 takeCardFromPlayer :: Card -> Player -> Player
@@ -111,11 +125,6 @@ takeCardFromPlayer card player@Player{..} = player {state = newState}
 takeCardFromHand :: [Card] -> Card -> [Card]
 takeCardFromHand gameHand card = delete card gameHand
 
-
-checkValidMove :: Player -> Move -> GameState -> Bool
-checkValidMove player move game = undefined
-
-
 applyMoveToPlayer :: Move -> Player -> Player
 applyMoveToPlayer (PlayCard card) player                    = takeCardFromPlayer card player
 applyMoveToPlayer (SpecialMoveChopStick card1 card2) player = bringChopstickBack playerAfter
@@ -123,12 +132,8 @@ applyMoveToPlayer (SpecialMoveChopStick card1 card2) player = bringChopstickBack
             playerAfter = applyMoveToPlayer (PlayCard card1) $ applyMoveToPlayer (PlayCard card2) player
 
 
-bringChopstickBack :: Player -> Player
-bringChopstickBack Player{..} = Player {pid = pid, state = newState}
-        where
-            newHand = insert Chopsticks (gameHand state)
-            newCardsOnTable = delete Chopsticks (cardsOnTable state)
-            newState = state {cardsOnTable = newCardsOnTable, gameHand = newHand}
+checkValidMove :: Player -> Move -> GameState -> Bool
+checkValidMove player move game = undefined
 
 
 whoseTurn :: Player -> [Player] -> Player
