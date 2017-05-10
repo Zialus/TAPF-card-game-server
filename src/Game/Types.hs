@@ -20,14 +20,15 @@ data Card = Tempura
           deriving (Show, Eq, Ord)
 
 data Player = Player { pid   :: Int
+                     , name  :: String
                      , state :: PlayerState
                      } deriving (Show)
 
 instance Eq Player where
-    Player pid1 _state1 == Player pid2 _state2 = pid1 == pid2
+    Player pid1 name1 _state1 == Player pid2 name2 _state2 = pid1 == pid2
 
 instance Ord Player where
-    Player pid1 _state1 <= Player pid2 _state2 = pid1 <= pid2
+    Player pid1 name1 _state1 <= Player pid2 name2 _state2 = pid1 <= pid2
 
 data PlayerState = PlayerState { gameHand     :: Deck
                                , cardsOnTable :: Deck
