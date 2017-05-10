@@ -20,10 +20,10 @@ amountToDistributeMap :: [(Int,Int)]
 amountToDistributeMap = [(2,10),(3,9),(4,8),(5,7)]
 
 player1 :: Player
-player1 = Player {pid = 21312, state = undefined}
+player1 = Player {pid = 21312, pname = "Manuel", state = undefined}
 
 player2 :: Player
-player2 = Player {pid = 1231, state = undefined}
+player2 = Player {pid = 1231, pname = "Pedro", state = undefined}
 
 player3 :: Player
-player3 = Player {pid = 34534, state = undefined}
+player3 = Player {pid = 34534, pname = "Jaquim", state = undefined}

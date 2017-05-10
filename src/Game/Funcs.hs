@@ -125,7 +125,7 @@ shuffleDeck (deck,gen) = shuffle' deck gen
 
 
 bringChopstickBack :: Player -> Player
-bringChopstickBack Player{..} = Player {pid = pid, state = newState}
+bringChopstickBack player@Player{..} = player {state = newState}
         where
             newHand = insert Chopsticks (gameHand state)
             newCardsOnTable = delete Chopsticks (cardsOnTable state)
