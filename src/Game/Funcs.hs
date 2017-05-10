@@ -7,7 +7,7 @@ import           Control.Monad.ST
 
 import           Data.Array.ST
 import           Data.List        (delete, elemIndex, find, insert)
-import           Data.Maybe
+import           Data.Maybe       (fromMaybe)
 import           Data.STRef
 
 import           System.Random

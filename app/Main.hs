@@ -10,11 +10,13 @@ import           Web.Spock.Config
 
 import           Control.Concurrent.MVar
 import           Control.Monad.Trans
-import           Data.Aeson              (FromJSON, Object, ToJSON,
-                                          eitherDecode, encode) -- decode, parseJSON
+
+import           Data.Aeson              (FromJSON, ToJSON, eitherDecode,
+                                          encode)
 import           Data.IORef
-import           Data.List               (insertBy, deleteBy) --insert
-import           Data.Monoid
+import           Data.List               (deleteBy, find, insert, insertBy)
+import           Data.Maybe              (fromMaybe)
+import           Data.Monoid             ((<>))
 import           Data.Ord                (comparing)
 import           Data.String.Conversions (cs)
 import qualified Data.Text               as T
@@ -25,7 +27,7 @@ import           Game.Data
 import           Game.Funcs
 import           Game.Types
 
-import           Lib            (findBy,equalling)
+import           Lib
 
 data MySession = EmptySession
 data MyAppState = DummyAppState (IORef Int)
@@ -33,7 +35,8 @@ data MyAppState = DummyAppState (IORef Int)
 type SessionID = Int
 
 data GameServer = GameServer
-    { gameList :: MVar [(SessionID, GameState)]
+    { gameList                :: MVar [(SessionID, GameState)]
+    , playersOnline           :: [Player]
     , numberOfPlayersOnServer :: IORef Int
     }
 
@@ -42,7 +45,7 @@ newServer :: IO GameServer
 newServer = do
     games <- newMVar []
     number <- newIORef 0
-    return GameServer {gameList = games, numberOfPlayersOnServer = number}
+    return GameServer {gameList = games, playersOnline = [], numberOfPlayersOnServer = number}
 
 newGameState :: Int -> StdGen -> Player -> GameState
 newGameState numP seed initialPlayer = newGameRoom
@@ -72,15 +75,18 @@ app = do
         currentDeck <- liftIO $ newMVar initialDeck
         get root $
             text "Hello World!"
+
         get ("hello" <//> var) $ \name -> do
                 (DummyAppState ref) <- getState
                 visitorNumber <- liftIO $ atomicModifyIORef' ref $ \i -> (i+1, i+1)
                 text ("Hello " <> name <> ", you are visitor number " <> T.pack (show visitorNumber))
+
         get "shuffle" $ do
             deck <- liftIO $ takeMVar currentDeck
             let (currentBoard, currentState) = shuffleDeck deck
             liftIO $ putMVar currentDeck (currentBoard, currentState)
             text  ("Current state of the Deck: " <> T.pack ( show currentBoard ))
+
         post "create" $ do
             boodyOfRequest <- body
             liftIO $ print boodyOfRequest
@@ -97,10 +103,10 @@ app = do
                                              then 1
                                              else fst (Prelude.head listOfGamesInServer) + 1
                           seed <- liftIO getStdGen
-                          let gameRoomID = roomIDtoCreate gameInfo
+                          let how_many_players = howManyPlayers gameInfo
                           let playerID = userIDCreating gameInfo
                           let player = Player {pid = playerID, pname = "LOOOOOL", state = newPlayerState} ---- NEEDS TO BE FIXED!!!! ------
-                          let newGame = newGameState gameRoomID seed player
+                          let newGame = newGameState how_many_players seed player
                           let serverPlusNewGame = insertBy (comparing fst) (newSessionID,newGame) listOfGamesInServer
                           liftIO $ putMVar (gameList gameServer) serverPlusNewGame
                           text "New Game was created"
@@ -116,28 +122,44 @@ app = do
                         listOfGamesInServer <- liftIO $ takeMVar (gameList gameServer)
 
                         let playerID = userIDJoinning gameInfo
+
+                        let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
+                        let thisPlayer = find (==fakePlayer) (playersOnline gameServer) -- get the player from the list
+                        let foundThisPlayer = fromMaybe (error "couldn't find the player in the online list") thisPlayer
+
                         let roomID = roomIDtoJoin gameInfo
+
+                        liftIO $ print ("looooool 0:" <> show listOfGamesInServer)
+
 
                         let gameToJoin = findBy roomID listOfGamesInServer
 
+                        liftIO $ print ("looooool 1:" <> show gameToJoin)
+
                         let serverListTmp = deleteBy ( equalling fst ) (roomID,undefined) listOfGamesInServer
 
-                        let gameToJoinUpdated = gameToJoin
+                        let (_gameID,game_state) = gameToJoin
+
+                        let updatedListOfPlayers = insert foundThisPlayer (players game_state)
+
+                        let game_state_updated = game_state { players = updatedListOfPlayers }
+                        let gameToJoinUpdated = (_gameID,game_state_updated)
+
+                        liftIO $ print ("looooool 2:" <> show gameToJoinUpdated)
 
                         let serverPlusUpdatedGame = insertBy (comparing fst) gameToJoinUpdated serverListTmp
-                        seed <- liftIO getStdGen
 
                         liftIO $ putMVar (gameList gameServer) serverPlusUpdatedGame
                         text "You've joined the game"
 
-
         post "/login" $ do
             boodyOfRequest <- body
             liftIO $ print boodyOfRequest
-            let bodyDecoded = eitherDecode $ cs boodyOfRequest :: Either String Object
+            let bodyDecoded = eitherDecode $ cs boodyOfRequest :: Either String UserLoginInfo
             case bodyDecoded of
                 Left err    -> text $ T.pack err
-                Right texto -> text $ cs $ encode texto
+                Right texto -> do
+                    text $ cs $ encode texto
             -- t <- jsonBody
             -- case t of
             --     Nothing -> return ()
@@ -146,20 +168,25 @@ app = do
             -- text ("done" <> T.pack ( show t ) )
 
 
+data UserLoginInfo = UserLoginInfo { userIDLogin       :: Int
+                                   , userNameLogin     :: T.Text
+                                   , userPasswordLogin :: T.Text
+                                   } deriving (Show,Generic)
 
 data JoinGameInfo = JoinGameInfo { userIDJoinning :: Int
                                  , roomIDtoJoin   :: Int
                                  } deriving (Show,Generic)
 
 
-
 data CreateGameInfo = CreateGameInfo { userIDCreating :: Int
-                                     , roomIDtoCreate :: Int
                                      , howManyPlayers :: Int
                                      } deriving (Show,Generic)
 
 instance FromJSON JoinGameInfo
 instance ToJSON JoinGameInfo
+
+instance FromJSON UserLoginInfo
+instance ToJSON UserLoginInfo
 
 instance FromJSON CreateGameInfo
 instance ToJSON CreateGameInfo
