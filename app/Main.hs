@@ -25,7 +25,7 @@ import           Game.Data
 import           Game.Funcs
 import           Game.Types
 
-import           Lib
+import           Lib            (findBy,equalling)
 
 data MySession = EmptySession
 data MyAppState = DummyAppState (IORef Int)

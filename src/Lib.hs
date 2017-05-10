@@ -1,10 +1,4 @@
-module Lib
-    ( someFunc,findBy,equalling
-    ) where
-
-someFunc :: IO ()
-someFunc = putStrLn "someFunc"
-
+module Lib (findBy, equalling) where
 
 findBy :: Eq a => a -> [(a, b)] -> (a,b)
 findBy y xs = head $ filter ((==) y . fst) xs
