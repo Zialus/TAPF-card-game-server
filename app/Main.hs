@@ -11,8 +11,7 @@ import           Web.Spock.Config
 import           Control.Concurrent.MVar
 import           Control.Monad.Trans
 
-import           Data.Aeson              (FromJSON, ToJSON, eitherDecode,
-                                          encode)
+import           Data.Aeson              (FromJSON, ToJSON, eitherDecode)
 import           Data.IORef
 import           Data.List               (deleteBy, find, insert, insertBy)
 import           Data.Maybe              (fromMaybe)
@@ -35,17 +34,18 @@ data MyAppState = DummyAppState (IORef Int)
 type SessionID = Int
 
 data GameServer = GameServer
-    { gameList                :: MVar [(SessionID, GameState)]
-    , playersOnline           :: [Player]
-    , numberOfPlayersOnServer :: IORef Int
+    { gameList      :: MVar [(SessionID, GameState)]
+    , playersOnline :: MVar [Player]
+    , playerCounter :: IORef Int
     }
 
 -- | initialize the server state
 newServer :: IO GameServer
 newServer = do
-    games <- newMVar []
-    number <- newIORef 0
-    return GameServer {gameList = games, playersOnline = [], numberOfPlayersOnServer = number}
+    _games <- newMVar []
+    _players <- newMVar []
+    _number <- newIORef 0
+    return GameServer {gameList = _games, playersOnline = _players, playerCounter = _number}
 
 newGameState :: Int -> StdGen -> Player -> GameState
 newGameState numP seed initialPlayer = newGameRoom
@@ -157,29 +157,35 @@ app = do
             liftIO $ print boodyOfRequest
             let bodyDecoded = eitherDecode $ cs boodyOfRequest :: Either String UserLoginInfo
             case bodyDecoded of
-                Left err    -> text $ T.pack err
-                Right texto -> do
-                    text $ cs $ encode texto
-            -- t <- jsonBody
-            -- case t of
-            --     Nothing -> return ()
-            --     Just a -> liftIO $ print a
-            --
-            -- text ("done" <> T.pack ( show t ) )
+                Left err       -> text $ T.pack err
+                Right userInfo -> do
+                    let uname = cs $ userNameLogin userInfo
+                    -- let passwd = userPasswordLogin userInfo  -- not using password for now
+
+                    playersOnlineList <- liftIO $ takeMVar (playersOnline gameServer)
+                    let counter = playerCounter gameServer
+                    userID <- liftIO $ atomicModifyIORef' counter $ \i -> (i+1, i+1)
+                    let newPlayer = Player {pid = userID, pname = uname, state = newPlayerState}
+                    let updatedUserList = insert newPlayer playersOnlineList
+                    liftIO $ putMVar (playersOnline gameServer) updatedUserList
+
+                    liftIO $ print newPlayer
+
+                    text ("You've just logged in! You are user: " <> T.pack ( show uname ) <> " with userID: " <> T.pack ( show userID)  )
 
 
-data UserLoginInfo = UserLoginInfo { userIDLogin       :: Int
-                                   , userNameLogin     :: T.Text
-                                   , userPasswordLogin :: T.Text
+
+data UserLoginInfo = UserLoginInfo { userNameLogin     :: !T.Text
+                                   , userPasswordLogin :: !T.Text
                                    } deriving (Show,Generic)
 
-data JoinGameInfo = JoinGameInfo { userIDJoinning :: Int
-                                 , roomIDtoJoin   :: Int
+data JoinGameInfo = JoinGameInfo { userIDJoinning :: !Int
+                                 , roomIDtoJoin   :: !Int
                                  } deriving (Show,Generic)
 
 
-data CreateGameInfo = CreateGameInfo { userIDCreating :: Int
-                                     , howManyPlayers :: Int
+data CreateGameInfo = CreateGameInfo { userIDCreating :: !Int
+                                     , howManyPlayers :: !Int
                                      } deriving (Show,Generic)
 
 instance FromJSON JoinGameInfo
