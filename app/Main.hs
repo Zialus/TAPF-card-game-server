@@ -119,36 +119,31 @@ app = do
           case bodyDecoded of
               Left err       -> text $ T.pack err
               Right gameInfo -> do
-                    listOfGamesInServer <- liftIO $ takeMVar (gameList gameServer)
 
+                    let roomID = roomIDtoJoin gameInfo
                     let playerID = userIDJoinning gameInfo
-
                     let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
 
                     playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
+
                     let thisPlayer = find (==fakePlayer) playersOnlineList -- get the player from the list
                     let foundThisPlayer = fromMaybe (error "couldn't find the player in the online list") thisPlayer
 
-                    let roomID = roomIDtoJoin gameInfo
+                    listOfGamesInServer <- liftIO $ takeMVar (gameList gameServer)
 
-                    liftIO $ print ("looooool 0:" <> show listOfGamesInServer)
-
+                    -- liftIO $ print ("looooool 0:" <> show listOfGamesInServer)
 
                     let gameToJoin = findBy roomID listOfGamesInServer
 
-                    liftIO $ print ("looooool 1:" <> show gameToJoin)
+                    -- liftIO $ print ("looooool 1:" <> show gameToJoin)
 
                     let serverListTmp = deleteBy ( equalling fst ) (roomID,undefined) listOfGamesInServer
 
-                    let (_gameID,game_state) = gameToJoin
-
+                    let (game_id,game_state) = gameToJoin
                     let updatedListOfPlayers = insert foundThisPlayer (players game_state)
-
                     let game_state_updated = game_state { players = updatedListOfPlayers }
-                    let gameToJoinUpdated = (_gameID,game_state_updated)
-
-                    liftIO $ print ("looooool 2:" <> show gameToJoinUpdated)
-
+                    let gameToJoinUpdated = (game_id,game_state_updated)
+                    -- liftIO $ print ("looooool 2:" <> show gameToJoinUpdated)
                     let serverPlusUpdatedGame = insertBy (comparing fst) gameToJoinUpdated serverListTmp
 
                     liftIO $ putMVar (gameList gameServer) serverPlusUpdatedGame
