@@ -29,7 +29,7 @@ import           Game.Types
 import           Lib
 
 data MySession = EmptySession
-data MyAppState = DummyAppState (IORef Int)
+data MyAppState = DummyAppState (GameServer)
 
 type SessionID = Int
 
@@ -63,23 +63,23 @@ newPlayerState = PlayerState { gameHand = []
 
 main :: IO ()
 main = do
-        ref <- newIORef 0
-        spockCfg <- defaultSpockCfg EmptySession PCNoDatabase (DummyAppState ref)
+        -- ref <- newIORef 0
+        gameServer <- liftIO newServer
+        spockCfg <- defaultSpockCfg EmptySession PCNoDatabase (DummyAppState gameServer)
         runSpock 8080 (spock spockCfg app)
 
 app :: SpockM () MySession MyAppState ()
 app = do
-        gameServer <- liftIO newServer
         seedForDeck <- liftIO getStdGen
         let initialDeck = (allcardsDeck,seedForDeck)
         currentDeck <- liftIO $ newMVar initialDeck
         get root $
             text "Hello World!"
 
-        get ("hello" <//> var) $ \name -> do
-                (DummyAppState ref) <- getState
-                visitorNumber <- liftIO $ atomicModifyIORef' ref $ \i -> (i+1, i+1)
-                text ("Hello " <> name <> ", you are visitor number " <> T.pack (show visitorNumber))
+        -- get ("hello" <//> var) $ \name -> do
+        --         (DummyAppState ref) <- getState
+        --         visitorNumber <- liftIO $ atomicModifyIORef' ref $ \i -> (i+1, i+1)
+        --         text ("Hello " <> name <> ", you are visitor number " <> T.pack (show visitorNumber))
 
         get "shuffle" $ do
             deck <- liftIO $ takeMVar currentDeck
@@ -87,7 +87,55 @@ app = do
             liftIO $ putMVar currentDeck (currentBoard, currentState)
             text  ("Current state of the Deck: " <> T.pack ( show currentBoard ))
 
-        post "create" $ do
+        post "create" createRequest
+
+        post "join" joinRequest
+
+        post "/login" loginRequest
+
+joinRequest :: ActionT (WebStateM () MySession MyAppState) ()
+joinRequest = do
+            (DummyAppState gameServer) <- getState
+            boodyOfRequest <- body
+            liftIO $ print boodyOfRequest
+            let bodyDecoded = eitherDecode $ cs boodyOfRequest :: Either String JoinGameInfo
+            liftIO $ print bodyDecoded
+            case bodyDecoded of
+                Left err       -> text $ T.pack err
+                Right gameInfo -> do
+
+                      let roomID = roomIDtoJoin gameInfo
+                      let playerID = userIDJoinning gameInfo
+                      let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
+
+                      playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
+
+                      let thisPlayer = find (==fakePlayer) playersOnlineList -- get the player from the list
+                      let foundThisPlayer = fromMaybe (error "couldn't find the player in the online list") thisPlayer
+
+                      listOfGamesInServer <- liftIO $ takeMVar (gameList gameServer)
+
+                      -- liftIO $ print ("looooool 0:" <> show listOfGamesInServer)
+
+                      let gameToJoin = findBy roomID listOfGamesInServer
+
+                      -- liftIO $ print ("looooool 1:" <> show gameToJoin)
+
+                      let serverListTmp = deleteBy ( equalling fst ) (roomID,undefined) listOfGamesInServer
+
+                      let (game_id,game_state) = gameToJoin
+                      let updatedListOfPlayers = insert foundThisPlayer (players game_state)
+                      let game_state_updated = game_state { players = updatedListOfPlayers }
+                      let gameToJoinUpdated = (game_id,game_state_updated)
+                      -- liftIO $ print ("looooool 2:" <> show gameToJoinUpdated)
+                      let serverPlusUpdatedGame = insertBy (comparing fst) gameToJoinUpdated serverListTmp
+
+                      liftIO $ putMVar (gameList gameServer) serverPlusUpdatedGame
+                      text "You've joined the game"
+
+createRequest :: ActionT (WebStateM () MySession MyAppState) ()
+createRequest = do
+            (DummyAppState gameServer) <- getState
             boodyOfRequest <- body
             liftIO $ print boodyOfRequest
             let bodyDecoded = eitherDecode $ cs boodyOfRequest :: Either String CreateGameInfo
@@ -111,45 +159,9 @@ app = do
                           liftIO $ putMVar (gameList gameServer) serverPlusNewGame
                           text "New Game was created"
 
-        post "join" $ do
-          boodyOfRequest <- body
-          liftIO $ print boodyOfRequest
-          let bodyDecoded = eitherDecode $ cs boodyOfRequest :: Either String JoinGameInfo
-          liftIO $ print bodyDecoded
-          case bodyDecoded of
-              Left err       -> text $ T.pack err
-              Right gameInfo -> do
-
-                    let roomID = roomIDtoJoin gameInfo
-                    let playerID = userIDJoinning gameInfo
-                    let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
-
-                    playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
-
-                    let thisPlayer = find (==fakePlayer) playersOnlineList -- get the player from the list
-                    let foundThisPlayer = fromMaybe (error "couldn't find the player in the online list") thisPlayer
-
-                    listOfGamesInServer <- liftIO $ takeMVar (gameList gameServer)
-
-                    -- liftIO $ print ("looooool 0:" <> show listOfGamesInServer)
-
-                    let gameToJoin = findBy roomID listOfGamesInServer
-
-                    -- liftIO $ print ("looooool 1:" <> show gameToJoin)
-
-                    let serverListTmp = deleteBy ( equalling fst ) (roomID,undefined) listOfGamesInServer
-
-                    let (game_id,game_state) = gameToJoin
-                    let updatedListOfPlayers = insert foundThisPlayer (players game_state)
-                    let game_state_updated = game_state { players = updatedListOfPlayers }
-                    let gameToJoinUpdated = (game_id,game_state_updated)
-                    -- liftIO $ print ("looooool 2:" <> show gameToJoinUpdated)
-                    let serverPlusUpdatedGame = insertBy (comparing fst) gameToJoinUpdated serverListTmp
-
-                    liftIO $ putMVar (gameList gameServer) serverPlusUpdatedGame
-                    text "You've joined the game"
-
-        post "/login" $ do
+loginRequest :: ActionT (WebStateM () MySession MyAppState) ()
+loginRequest = do
+            (DummyAppState gameServer) <- getState
             boodyOfRequest <- body
             liftIO $ print boodyOfRequest
             let bodyDecoded = eitherDecode $ cs boodyOfRequest :: Either String UserLoginInfo
