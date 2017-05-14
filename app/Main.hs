@@ -29,7 +29,7 @@ import           Game.Types
 import           Lib
 
 data MySession = EmptySession
-data MyAppState = DummyAppState (GameServer)
+data MyAppState = DummyAppState GameServer
 
 type SessionID = Int
 
@@ -101,9 +101,8 @@ joinRequest = do
             let bodyDecoded = eitherDecode $ cs boodyOfRequest :: Either String JoinGameInfo
             liftIO $ print bodyDecoded
             case bodyDecoded of
-                Left err       -> text $ T.pack err
+                Left  err      -> text $ T.pack err
                 Right gameInfo -> do
-
                       let roomID = roomIDtoJoin gameInfo
                       let playerID = userIDJoinning gameInfo
                       let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
@@ -113,14 +112,11 @@ joinRequest = do
                       let thisPlayer = find (==fakePlayer) playersOnlineList -- get the player from the list
                       let foundThisPlayer = fromMaybe (error "couldn't find the player in the online list") thisPlayer
 
+                    --   let foundThisPlayer = findPlayerByID playerID gameServer
+
                       listOfGamesInServer <- liftIO $ takeMVar (gameList gameServer)
-
-                      -- liftIO $ print ("looooool 0:" <> show listOfGamesInServer)
-
-                      let gameToJoin = findBy roomID listOfGamesInServer
-
-                      -- liftIO $ print ("looooool 1:" <> show gameToJoin)
-
+                      let maybeGameToJoin = findBy roomID listOfGamesInServer
+                      let gameToJoin = fromMaybe (error "That game does not exist") maybeGameToJoin
                       let serverListTmp = deleteBy ( equalling fst ) (roomID,undefined) listOfGamesInServer
 
                       let (game_id,game_state) = gameToJoin
@@ -141,23 +137,27 @@ createRequest = do
             let bodyDecoded = eitherDecode $ cs boodyOfRequest :: Either String CreateGameInfo
             liftIO $ print bodyDecoded
             case bodyDecoded of
-                Left err       -> text $ T.pack err
+                Left  err      -> text $ T.pack err
                 Right gameInfo -> do
-                          listOfGamesInServer <- liftIO $ takeMVar (gameList gameServer)
+                    let how_many_players = howManyPlayers gameInfo
+                    let playerID = userIDCreating gameInfo
 
-                          liftIO $ print listOfGamesInServer
+                    let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
+                    playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
+                    let thisPlayer = find (==fakePlayer) playersOnlineList -- get the player from the list
+                    let foundThisPlayer = fromMaybe (error "player isn't online, therefore can't create a game") thisPlayer
 
-                          let newSessionID = if null listOfGamesInServer
-                                             then 1
-                                             else fst (Prelude.head listOfGamesInServer) + 1
-                          seed <- liftIO getStdGen
-                          let how_many_players = howManyPlayers gameInfo
-                          let playerID = userIDCreating gameInfo
-                          let player = Player {pid = playerID, pname = "LOOOOOL", state = newPlayerState} ---- NEEDS TO BE FIXED!!!! ------
-                          let newGame = newGameState how_many_players seed player
-                          let serverPlusNewGame = insertBy (comparing fst) (newSessionID,newGame) listOfGamesInServer
-                          liftIO $ putMVar (gameList gameServer) serverPlusNewGame
-                          text "New Game was created"
+                    seed <- liftIO getStdGen
+                    let newGame = newGameState how_many_players seed foundThisPlayer
+
+                    listOfGamesInServer <- liftIO $ takeMVar (gameList gameServer)
+                    liftIO $ print listOfGamesInServer
+                    let newSessionID = if null listOfGamesInServer
+                                     then 1
+                                     else fst (last listOfGamesInServer) + 1
+                    let serverPlusNewGame = insertBy (comparing fst) (newSessionID,newGame) listOfGamesInServer
+                    liftIO $ putMVar (gameList gameServer) serverPlusNewGame
+                    text("New Game with id: " <> T.pack ( show newSessionID ) <> " was created by player " <> T.pack ( show thisPlayer ) )
 
 loginRequest :: ActionT (WebStateM () MySession MyAppState) ()
 loginRequest = do
@@ -165,8 +165,9 @@ loginRequest = do
             boodyOfRequest <- body
             liftIO $ print boodyOfRequest
             let bodyDecoded = eitherDecode $ cs boodyOfRequest :: Either String UserLoginInfo
+            liftIO $ print bodyDecoded
             case bodyDecoded of
-                Left err       -> text $ T.pack err
+                Left  err      -> text $ T.pack err
                 Right userInfo -> do
                     let uname = cs $ userNameLogin userInfo
                     -- let passwd = userPasswordLogin userInfo  -- not using password for now
@@ -205,3 +206,12 @@ instance ToJSON UserLoginInfo
 
 instance FromJSON CreateGameInfo
 instance ToJSON CreateGameInfo
+
+
+-- findPlayerByID :: Int -> GameServer -> ActionT (WebStateM () MySession MyAppState) Player
+-- findPlayerByID playerID gameServer = do
+--      let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
+--      playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
+--      let thisPlayer = find (==fakePlayer) playersOnlineList -- get the player from the list
+--      let foundThisPlayer = fromMaybe (error "The Player isn't logged in") thisPlayer
+--      return foundThisPlayer
