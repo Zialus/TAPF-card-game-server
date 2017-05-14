@@ -17,7 +17,7 @@ data Card = Tempura
           | Pudding
           | Wasabi
           | Chopsticks
-          deriving (Show, Eq, Ord)
+          deriving (Show, Read, Eq, Ord)
 
 data Player = Player { pid   :: Int
                      , pname :: String
@@ -44,3 +44,4 @@ data GameState = GameState { deckState  :: DeckState
 
 data Move = PlayCard Card
           | SpecialMoveChopStick Card Card
+          deriving (Show)

@@ -17,7 +17,7 @@ import           Data.List               (deleteBy, find, insert, insertBy)
 import           Data.Maybe              (fromMaybe)
 import           Data.Monoid             ((<>))
 import           Data.Ord                (comparing)
-import           Data.String.Conversions (cs)
+import           Data.String.Conversions (cs, ConvertibleStrings,convertString)
 import qualified Data.Text               as T
 
 import           System.Random
@@ -91,7 +91,9 @@ app = do
 
         post "join" joinRequest
 
-        post "/login" loginRequest
+        post "login" loginRequest
+
+        post "play" playRequest
 
 joinRequest :: ActionT (WebStateM () MySession MyAppState) ()
 joinRequest = do
@@ -105,10 +107,9 @@ joinRequest = do
                 Right gameInfo -> do
                       let roomID = roomIDtoJoin gameInfo
                       let playerID = userIDJoinning gameInfo
+
                       let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
-
                       playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
-
                       let thisPlayer = find (==fakePlayer) playersOnlineList -- get the player from the list
                       let foundThisPlayer = fromMaybe (error "couldn't find the player in the online list") thisPlayer
 
@@ -145,19 +146,26 @@ createRequest = do
                     let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
                     playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
                     let thisPlayer = find (==fakePlayer) playersOnlineList -- get the player from the list
-                    let foundThisPlayer = fromMaybe (error "player isn't online, therefore can't create a game") thisPlayer
 
-                    seed <- liftIO getStdGen
-                    let newGame = newGameState how_many_players seed foundThisPlayer
+                    -- let foundThisPlayer = fromMaybe (error "player isn't online, therefore can't create a game") thisPlayer
 
-                    listOfGamesInServer <- liftIO $ takeMVar (gameList gameServer)
-                    liftIO $ print listOfGamesInServer
-                    let newSessionID = if null listOfGamesInServer
-                                     then 1
-                                     else fst (last listOfGamesInServer) + 1
-                    let serverPlusNewGame = insertBy (comparing fst) (newSessionID,newGame) listOfGamesInServer
-                    liftIO $ putMVar (gameList gameServer) serverPlusNewGame
-                    text("New Game with id: " <> T.pack ( show newSessionID ) <> " was created by player " <> T.pack ( show thisPlayer ) )
+
+                    case thisPlayer of
+                        Nothing -> text "player isn't online, therefore can't create a game"
+                        Just player -> do
+                            seed <- liftIO getStdGen
+                            let newGame = newGameState how_many_players seed player
+
+                            listOfGamesInServer <- liftIO $ takeMVar (gameList gameServer)
+                            liftIO $ print listOfGamesInServer
+                            let newSessionID = if null listOfGamesInServer
+                                             then 1
+                                             else fst (last listOfGamesInServer) + 1
+                            let serverPlusNewGame = insertBy (comparing fst) (newSessionID,newGame) listOfGamesInServer
+                            liftIO $ putMVar (gameList gameServer) serverPlusNewGame
+                            text("New Game with id: " <> T.pack ( show newSessionID ) <> " was created by player " <> T.pack ( show player ) )
+
+
 
 loginRequest :: ActionT (WebStateM () MySession MyAppState) ()
 loginRequest = do
@@ -183,11 +191,62 @@ loginRequest = do
 
                     text ("You've just logged in! You are user: " <> T.pack ( show uname ) <> " with userID: " <> T.pack ( show userID)  )
 
+playRequest :: ActionT (WebStateM () MySession MyAppState) ()
+playRequest = do
+            (DummyAppState gameServer) <- getState
+            boodyOfRequest <- body
+            liftIO $ print boodyOfRequest
+            let bodyDecoded = eitherDecode $ cs boodyOfRequest :: Either String UserPlayInfo
+            liftIO $ print bodyDecoded
+            case bodyDecoded of
+                Left  err      -> text $ T.pack err
+                Right playInfo -> do
+                      let roomID = roomIDtoPlay playInfo
+                      let playerID = userIDPlaying playInfo
+
+                      let cards = map cs (userCard playInfo)
+
+                      liftIO $ print cards
+                      let move = PlayCard (read (cards !! 0) :: Card)
+                      liftIO $ print move
+
+
+                      listOfGamesInServer <- liftIO $ takeMVar (gameList gameServer)
+                      let maybeGameToJoin = findBy roomID listOfGamesInServer
+                      let gameToPlay = fromMaybe (error "That game does not exist") maybeGameToJoin
+                      let serverListTmp = deleteBy ( equalling fst ) (roomID,undefined) listOfGamesInServer
+
+                      let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
+                      playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
+                      let thisPlayer = find (==fakePlayer) playersOnlineList -- get the player from the list
+                      let foundThisPlayer = fromMaybe (error "player isn't online") thisPlayer
+
+
+                      let (game_id,game_state) = gameToPlay
+                      let gameStateAfterMove = applyMoveToGame foundThisPlayer move game_state
+                      let gameAfterStateUpdate = (game_id,gameStateAfterMove)
+
+                      liftIO $ print gameAfterStateUpdate
+
+                      -- I need to check if the round is correct, and i need to implement the play checker and stuff
+
+                      let serverPlusUpdatedGame = insertBy (comparing fst) gameAfterStateUpdate serverListTmp
+
+                      liftIO $ putMVar (gameList gameServer) serverPlusUpdatedGame
+                      text "The move has been applied to the game"
 
 
 data UserLoginInfo = UserLoginInfo { userNameLogin     :: !T.Text
                                    , userPasswordLogin :: !T.Text
                                    } deriving (Show,Generic)
+
+data UserPlayInfo = UserPlayInfo { userIDPlaying :: !Int
+                                 , roomIDtoPlay  :: !Int
+                                 , userRound     :: !Int
+                                 , playType      :: !T.Text
+                                 , userCard      :: [T.Text]
+                                 } deriving (Show,Generic)
+
 
 data JoinGameInfo = JoinGameInfo { userIDJoinning :: !Int
                                  , roomIDtoJoin   :: !Int
@@ -198,6 +257,10 @@ data CreateGameInfo = CreateGameInfo { userIDCreating :: !Int
                                      , howManyPlayers :: !Int
                                      } deriving (Show,Generic)
 
+
+instance FromJSON UserPlayInfo
+instance ToJSON UserPlayInfo
+
 instance FromJSON JoinGameInfo
 instance ToJSON JoinGameInfo
 
@@ -207,6 +270,8 @@ instance ToJSON UserLoginInfo
 instance FromJSON CreateGameInfo
 instance ToJSON CreateGameInfo
 
+-- instance ConvertibleStrings Card String where
+--     convertString = show
 
 -- findPlayerByID :: Int -> GameServer -> ActionT (WebStateM () MySession MyAppState) Player
 -- findPlayerByID playerID gameServer = do
