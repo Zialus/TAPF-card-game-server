@@ -135,15 +135,24 @@ takeCardFromHand :: [Card] -> Card -> [Card]
 takeCardFromHand gameHand card = delete card gameHand
 
 
-takeCardFromPlayer :: Card -> Player -> Player
-takeCardFromPlayer card player@Player{..} = player {state = newState}
+takeCardFromPlayer :: Card -> Player -> (Card,Player)
+takeCardFromPlayer card player@Player{..} = (card, player {state = newState})
         where
             newHand = takeCardFromHand (gameHand state) card
             newState = state {gameHand = newHand}
 
+putCardOnTable :: (Card,Player) -> Player
+putCardOnTable (card,player@Player{..}) = player {state = newState}
+        where
+            newCardsOnTable = insert card (cardsOnTable state)
+            newState = state {cardsOnTable = newCardsOnTable}
+
+
+playCardFromPlayer :: Card -> Player -> Player
+playCardFromPlayer card player = putCardOnTable $ takeCardFromPlayer card player
 
 applyMoveToPlayer :: Move -> Player -> Player
-applyMoveToPlayer (PlayCard card) player                    = takeCardFromPlayer card player
+applyMoveToPlayer (PlayCard card) player                    = playCardFromPlayer card player
 applyMoveToPlayer (SpecialMoveChopStick card1 card2) player = bringChopstickBack playerAfter
         where
             playerAfter = applyMoveToPlayer (PlayCard card1) $ applyMoveToPlayer (PlayCard card2) player
