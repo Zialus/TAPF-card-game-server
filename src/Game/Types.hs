@@ -44,4 +44,4 @@ data GameState = GameState { deckState  :: DeckState
 
 data Move = PlayCard Card
           | SpecialMoveChopStick Card Card
-          deriving (Show)
+          deriving (Read,Show)
