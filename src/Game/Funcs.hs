@@ -169,6 +169,17 @@ applyMoveToGame p mv gs@GameState{..} = newGameState
             newGameState = gs {players = newPlayers}
 
 
+playerHasCardToPlay :: Player -> Card -> Bool
+playerHasCardToPlay Player{..} card =
+    case search of
+        Nothing -> False
+        Just _ -> True
+    where playerHand = gameHand state
+          search = find (==card) playerHand
+
+correctTurn :: Player -> Int -> Bool
+correctTurn Player{..} inputTurn = inputTurn == turn state
+
 checkValidMove :: Player -> Move -> GameState -> Bool
 -- checkValidMove player move game = coise
 checkValidMove = undefined
