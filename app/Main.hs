@@ -110,31 +110,37 @@ joinRequest = do
 
               let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
               playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
-              let thisPlayer = find (==fakePlayer) playersOnlineList -- get the player from the list
+              let thisPlayer = find (==fakePlayer) playersOnlineList
 
               --   let foundThisPlayer = fromMaybe (error "couldn't find the player in the online list") thisPlayer
-
               --   let foundThisPlayer = findPlayerByID playerID gameServer
 
               case thisPlayer of
-                  Nothing     -> text "player isn't online, therefore can't create a game"
+                  Nothing     -> text "player isn't online, therefore can't join a game"
                   Just player -> do
-                      listOfGamesInServer <- liftIO $ readMVar (gameList gameServer)
-                      let maybeGameToJoin = findBy roomID listOfGamesInServer
-                      case maybeGameToJoin of
+                      listOfGamesInServerTMP <- liftIO $ readMVar (gameList gameServer)
+                      let maybeGameToJoinTMP = findBy roomID listOfGamesInServerTMP
+                      case maybeGameToJoinTMP of
                           Nothing -> text "That game does not exist, you can't join it"
-                          Just gameToJoin -> do
+                          Just _ -> do
                               listOfGamesInServer <- liftIO $ takeMVar (gameList gameServer)
+
+                              let maybeGameToJoin = findBy roomID listOfGamesInServer -- i need to grab it again becauase previously readMvar was used, now takeMvar was used
+                              let gameToJoin = fromMaybe (error "This can't even happen") maybeGameToJoin
                               let serverListTmp = deleteBy ( equalling fst ) (roomID,undefined) listOfGamesInServer
                               let (game_id,game_state) = gameToJoin
-                              let updatedListOfPlayers = insert player (players game_state)
-                              let game_state_updated = game_state { players = updatedListOfPlayers }
-                              let gameToJoinUpdated = (game_id,game_state_updated)
-                              -- liftIO $ print ("looooool 2:" <> show gameToJoinUpdated)
-                              let serverPlusUpdatedGame = insertBy (comparing fst) gameToJoinUpdated serverListTmp
+                              if length (players game_state) == numPlayers game_state
+                                  then text "You can't enter, the room is full!"
+                                  else do
+                                      let updatedListOfPlayers = insert player (players game_state)
+                                      let game_state_updated = game_state { players = updatedListOfPlayers }
+                                      let gameToJoinUpdated = (game_id,game_state_updated)
+                                      let serverPlusUpdatedGame = insertBy (comparing fst) gameToJoinUpdated serverListTmp
 
-                              liftIO $ putMVar (gameList gameServer) serverPlusUpdatedGame
-                              text "You've joined the game"
+                                      liftIO $ putMVar (gameList gameServer) serverPlusUpdatedGame
+
+                                      text ("You've just join the game: " <> T.pack ( show game_id) <> " and you are user: " <> T.pack ( show player ) )
+
 
 createRequest :: ActionT (WebStateM () MySession MyAppState) ()
 createRequest = do
@@ -172,7 +178,6 @@ createRequest = do
                             text("New Game with id: " <> T.pack ( show newSessionID ) <> " was created by player: " <> T.pack ( show player ) )
 
 
-
 loginRequest :: ActionT (WebStateM () MySession MyAppState) ()
 loginRequest = do
             (DummyAppState gameServer) <- getState
@@ -197,6 +202,7 @@ loginRequest = do
 
                     text ("You've just logged in! You are user: " <> T.pack ( show uname ) <> " with userID: " <> T.pack ( show userID)  )
 
+
 playRequest :: ActionT (WebStateM () MySession MyAppState) ()
 playRequest = do
             (DummyAppState gameServer) <- getState
@@ -215,42 +221,47 @@ playRequest = do
                       case maybeRead moveText :: Maybe Move of
                           Nothing -> text "Not a valid move type"
                           Just _ ->   do
-                                      let moveType = (words moveText) !! 0
+                            let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
+                            playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
+                            let thisPlayer = find (==fakePlayer) playersOnlineList -- get the player from the list
+                            let foundThisPlayer = fromMaybe (error "player isn't online") thisPlayer
 
-                                      case moveType of
-                                          "PlayCard" ->   do
-                                                          let card = (words moveText) !! 1
-                                                          let move = PlayCard (read card :: Card)
-                                                          liftIO $ print move
+                            listOfGamesInServer <- liftIO $ takeMVar (gameList gameServer)
+                            let maybeGameToJoin = findBy roomID listOfGamesInServer
+                            let gameToPlay = fromMaybe (error "That game does not exist") maybeGameToJoin
+                            let serverListTmp = deleteBy ( equalling fst ) (roomID,undefined) listOfGamesInServer
 
+                            let (game_id,game_state) = gameToPlay
 
-                                                          listOfGamesInServer <- liftIO $ takeMVar (gameList gameServer)
-                                                          let maybeGameToJoin = findBy roomID listOfGamesInServer
-                                                          let gameToPlay = fromMaybe (error "That game does not exist") maybeGameToJoin
-                                                          let serverListTmp = deleteBy ( equalling fst ) (roomID,undefined) listOfGamesInServer
+                            let moveTypeInList = words moveText
 
-                                                          let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
-                                                          playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
-                                                          let thisPlayer = find (==fakePlayer) playersOnlineList -- get the player from the list
-                                                          let foundThisPlayer = fromMaybe (error "player isn't online") thisPlayer
+                            let moveType = moveTypeInList !! 0
 
-
-                                                          let (game_id,game_state) = gameToPlay
-                                                          let gameStateAfterMove = applyMoveToGame foundThisPlayer move game_state
-                                                          let gameAfterStateUpdate = (game_id,gameStateAfterMove)
-
-                                                          liftIO $ print gameAfterStateUpdate
-
-                                                          -- I need to check if the round is correct, and i need to implement the play checker and stuff
-
-                                                          let serverPlusUpdatedGame = insertBy (comparing fst) gameAfterStateUpdate serverListTmp
-
-                                                          liftIO $ putMVar (gameList gameServer) serverPlusUpdatedGame
-                                                          text "The move has been applied to the game"
-                                          "SpecialMoveChopStick" -> do
-                                                text "not finished"
-                                          _ -> do
-                                                text "will never happen"
+                            case moveType of
+                              "PlayCard" -> do
+                                  let card = moveTypeInList !! 1
+                                  let move = PlayCard (read card :: Card)
+                                  liftIO $ print move
+                                  let gameStateAfterMove = applyMoveToGame foundThisPlayer move game_state
+                                  let gameAfterStateUpdate = (game_id,gameStateAfterMove)
+                                  liftIO $ print gameAfterStateUpdate
+                                  let serverPlusUpdatedGame = insertBy (comparing fst) gameAfterStateUpdate serverListTmp
+                                  liftIO $ putMVar (gameList gameServer) serverPlusUpdatedGame
+                                  text "The move has been applied to the game"
+                              "SpecialMoveChopStick" -> do
+                                  let card1 = moveTypeInList !! 1
+                                  let card2 = moveTypeInList !! 2
+                                  let move = SpecialMoveChopStick (read card1 :: Card) (read card2 :: Card)
+                                  liftIO $ print move
+                                  let gameStateAfterMove = applyMoveToGame foundThisPlayer move game_state
+                                  let gameAfterStateUpdate = (game_id,gameStateAfterMove)
+                                  liftIO $ print gameAfterStateUpdate
+                                  let serverPlusUpdatedGame = insertBy (comparing fst) gameAfterStateUpdate serverListTmp
+                                  liftIO $ putMVar (gameList gameServer) serverPlusUpdatedGame
+                                  text "not finished"
+                              _ -> do
+                                  _ <- error "this won't happen"
+                                  text "ths will never happen"
 
 
 
