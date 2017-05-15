@@ -97,33 +97,35 @@ app = do
 
 joinRequest :: ActionT (WebStateM () MySession MyAppState) ()
 joinRequest = do
-            (DummyAppState gameServer) <- getState
-            boodyOfRequest <- body
-            liftIO $ print boodyOfRequest
-            let bodyDecoded = eitherDecode $ cs boodyOfRequest :: Either String JoinGameInfo
-            liftIO $ print bodyDecoded
-            case bodyDecoded of
-                Left  err      -> text $ T.pack err
-                Right gameInfo -> do
-                      let roomID = roomIDtoJoin gameInfo
-                      let playerID = userIDJoinning gameInfo
+    (DummyAppState gameServer) <- getState
+    boodyOfRequest <- body
+    liftIO $ print boodyOfRequest
+    let bodyDecoded = eitherDecode $ cs boodyOfRequest :: Either String JoinGameInfo
+    liftIO $ print bodyDecoded
+    case bodyDecoded of
+        Left  err      -> text $ T.pack err
+        Right gameInfo -> do
+              let roomID = roomIDtoJoin gameInfo
+              let playerID = userIDJoinning gameInfo
 
-                      let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
-                      playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
-                      let thisPlayer = find (==fakePlayer) playersOnlineList -- get the player from the list
+              let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
+              playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
+              let thisPlayer = find (==fakePlayer) playersOnlineList -- get the player from the list
 
-                      --   let foundThisPlayer = fromMaybe (error "couldn't find the player in the online list") thisPlayer
+              --   let foundThisPlayer = fromMaybe (error "couldn't find the player in the online list") thisPlayer
 
-                      --   let foundThisPlayer = findPlayerByID playerID gameServer
+              --   let foundThisPlayer = findPlayerByID playerID gameServer
 
-                      case thisPlayer of
-                          Nothing     -> text "player isn't online, therefore can't create a game"
-                          Just player -> do
+              case thisPlayer of
+                  Nothing     -> text "player isn't online, therefore can't create a game"
+                  Just player -> do
+                      listOfGamesInServer <- liftIO $ readMVar (gameList gameServer)
+                      let maybeGameToJoin = findBy roomID listOfGamesInServer
+                      case maybeGameToJoin of
+                          Nothing -> text "That game does not exist, you can't join it"
+                          Just gameToJoin -> do
                               listOfGamesInServer <- liftIO $ takeMVar (gameList gameServer)
-                              let maybeGameToJoin = findBy roomID listOfGamesInServer
-                              let gameToJoin = fromMaybe (error "That game does not exist") maybeGameToJoin
                               let serverListTmp = deleteBy ( equalling fst ) (roomID,undefined) listOfGamesInServer
-
                               let (game_id,game_state) = gameToJoin
                               let updatedListOfPlayers = insert player (players game_state)
                               let game_state_updated = game_state { players = updatedListOfPlayers }
