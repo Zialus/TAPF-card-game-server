@@ -2,47 +2,12 @@
 
 module Game.Funcs where
 
-import           Control.Monad
-import           Control.Monad.ST
-
-import           Data.Array.ST
 import           Data.List        (delete, elemIndex, find, insert)
 import           Data.Maybe       (fromMaybe)
-import           Data.STRef
-
-import           System.Random
 
 import           Game.Data
 import           Game.Types
-
-iterateNTimes :: Int -> (a -> a) -> a -> a
-iterateNTimes n f x = iterate f x !! n
-
-count :: Eq a => a -> [a] -> Int
-count x =  length . filter (==x)
-
--- | Randomly shuffle a list without the IO Monad
---   /O(N)/
-shuffle' :: [a] -> StdGen -> ([a],StdGen)
-shuffle' xs gen = runST (do
-        g <- newSTRef gen
-        let randomRST lohi = do
-              (a,s') <- fmap (randomR lohi) (readSTRef g)
-              writeSTRef g s'
-              return a
-        ar <- newArray' n xs
-        xs' <- forM [1..n] $ \i -> do
-                j <- randomRST (i,n)
-                vi <- readArray ar i
-                vj <- readArray ar j
-                writeArray ar j vi
-                return vj
-        gen' <- readSTRef g
-        return (xs',gen'))
-        where
-            n = length xs
-            newArray' :: Int -> [a] -> ST s (STArray s Int a)
-            newArray' n' =  newListArray (1,n')
+import           Lib
 
 
 giveCardsToPlayer :: Deck -> Player -> Int -> (Deck,Player)
