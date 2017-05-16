@@ -134,12 +134,18 @@ joinRequest = do
                                   else do
                                       let updatedListOfPlayers = insert player (players game_state)
                                       let game_state_updated = game_state { players = updatedListOfPlayers }
-                                      let gameToJoinUpdated = (game_id,game_state_updated)
-                                      let serverPlusUpdatedGame = insertBy (comparing fst) gameToJoinUpdated serverListTmp
-
-                                      liftIO $ putMVar (gameList gameServer) serverPlusUpdatedGame
-
-                                      text ("You've just join the game: " <> T.pack ( show game_id) <> " and you are user: " <> T.pack ( show player ) )
+                                      if length (players game_state_updated) == numPlayers game_state_updated
+                                          then do
+                                            let game_state_updated2 = startGame game_state_updated
+                                            let gameToJoinUpdated = (game_id,game_state_updated2)
+                                            let serverPlusUpdatedGame = insertBy (comparing fst) gameToJoinUpdated serverListTmp
+                                            liftIO $ putMVar (gameList gameServer) serverPlusUpdatedGame
+                                            text ("The Game starts now!!!! " <> T.pack (show game_state_updated2) )
+                                          else do
+                                            let gameToJoinUpdated = (game_id,game_state_updated)
+                                            let serverPlusUpdatedGame = insertBy (comparing fst) gameToJoinUpdated serverListTmp
+                                            liftIO $ putMVar (gameList gameServer) serverPlusUpdatedGame
+                                            text ("Still waiting for the game to begin: " <> T.pack ( show game_id) <> " and you are user: " <> T.pack ( show player ) )
 
 
 createRequest :: ActionT (WebStateM () MySession MyAppState) ()

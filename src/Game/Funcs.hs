@@ -70,6 +70,9 @@ giveCardsToPlayers (deckcards,deckstate) playerList amountOfCards = (exitState,e
             (_,_, exitPlayerList,exitState) = iterateNTimes amount auxToIterate (amountOfCards, 0, playerList, (deckcards,deckstate))
 
 
+startGame :: GameState -> GameState
+startGame = distributeCards
+
 distributeCards :: GameState -> GameState
 distributeCards game@GameState{..} = exitState
         where
@@ -179,6 +182,8 @@ playerHasCardToPlay Player{..} card =
 
 correctTurn :: Player -> Int -> Bool
 correctTurn Player{..} inputTurn = inputTurn == turn state
+
+-- I need to check if the round is correct, and i need to implement the play checker and stuff
 
 checkValidMove :: Player -> Move -> GameState -> Bool
 -- checkValidMove player move game = coise
