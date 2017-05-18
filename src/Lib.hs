@@ -1,4 +1,4 @@
-module Lib (findBy, equalling,maybeRead,count,iterateNTimes,shuffle') where
+module Lib (findBy, equalling,maybeRead,count,iterateNTimes,shuffle', whereIsIt,removeAtIdx) where
 
 import           Data.Maybe (listToMaybe)
 
@@ -9,6 +9,21 @@ import           System.Random
 
 import           Data.Array.ST
 import           Data.STRef
+
+whereIsIt :: Eq a => a -> [[a]] -> Maybe Int
+whereIsIt e l = whereIsIt' e l 0
+
+
+whereIsIt' :: Eq a => a -> [[a]] -> Int -> Maybe Int
+whereIsIt' _ [] _ = Nothing
+whereIsIt' element (x:xs) n = if element `elem` x
+                                then Just n
+                                else whereIsIt' element xs (n+1)
+
+removeAtIdx :: Int -> [a] -> [a]
+removeAtIdx idx list = finalList
+        where (first,second) = splitAt idx list
+              finalList = first ++ drop 1 second
 
 findBy :: Eq a => a -> [(a, b)] -> Maybe (a,b)
 findBy y xs = listToMaybe $ filter ((==) y . fst) xs
