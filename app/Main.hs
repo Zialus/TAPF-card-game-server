@@ -32,6 +32,7 @@ data MySession = EmptySession
 data MyAppState = DummyAppState GameServer
 
 type SessionID = Int
+type Handler = ActionT (WebStateM () MySession MyAppState)
 
 data GameServer = GameServer
     { gameList      :: MVar [(SessionID, GameState)]
@@ -57,7 +58,6 @@ newGameState numP seed initialPlayer = newGameRoom
 newPlayerState :: PlayerState
 newPlayerState = PlayerState { gameHand = []
                              , cardsOnTable = []
-                             , wasabi = False
                              , turn = 0
                              }
 
@@ -95,7 +95,7 @@ app = do
 
         post "play" playRequest
 
-joinRequest :: ActionT (WebStateM () MySession MyAppState) ()
+joinRequest :: Handler ()
 joinRequest = do
     (DummyAppState gameServer) <- getState
     boodyOfRequest <- body
@@ -113,7 +113,7 @@ joinRequest = do
               let thisPlayer = find (==fakePlayer) playersOnlineList
 
               --   let foundThisPlayer = fromMaybe (error "couldn't find the player in the online list") thisPlayer
-              --   let foundThisPlayer = findPlayerByID playerID gameServer
+            --   foundThisPlayer <- findPlayerByID playerID gameServer
 
               case thisPlayer of
                   Nothing     -> text "player isn't online, therefore can't join a game"
@@ -148,7 +148,7 @@ joinRequest = do
                                             text ("Still waiting for the game to begin: " <> T.pack ( show game_id) <> " and you are user: " <> T.pack ( show player ) )
 
 
-createRequest :: ActionT (WebStateM () MySession MyAppState) ()
+createRequest :: Handler ()
 createRequest = do
             (DummyAppState gameServer) <- getState
             boodyOfRequest <- body
@@ -184,7 +184,7 @@ createRequest = do
                             text("New Game with id: " <> T.pack ( show newSessionID ) <> " was created by player: " <> T.pack ( show player ) )
 
 
-loginRequest :: ActionT (WebStateM () MySession MyAppState) ()
+loginRequest :: Handler ()
 loginRequest = do
             (DummyAppState gameServer) <- getState
             boodyOfRequest <- body
@@ -209,7 +209,7 @@ loginRequest = do
                     text ("You've just logged in! You are user: " <> T.pack ( show uname ) <> " with userID: " <> T.pack ( show userID)  )
 
 
-playRequest :: ActionT (WebStateM () MySession MyAppState) ()
+playRequest :: Handler ()
 playRequest = do
             (DummyAppState gameServer) <- getState
             boodyOfRequest <- body
@@ -304,13 +304,11 @@ instance ToJSON UserLoginInfo
 instance FromJSON CreateGameInfo
 instance ToJSON CreateGameInfo
 
--- instance ConvertibleStrings Card String where
---     convertString = show
 
--- findPlayerByID :: Int -> GameServer -> ActionT (WebStateM () MySession MyAppState) Player
--- findPlayerByID playerID gameServer = do
---      let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
---      playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
---      let thisPlayer = find (==fakePlayer) playersOnlineList -- get the player from the list
---      let foundThisPlayer = fromMaybe (error "The Player isn't logged in") thisPlayer
---      return foundThisPlayer
+findPlayerByID :: Int -> GameServer -> Handler Player
+findPlayerByID playerID gameServer = do
+     let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
+     playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
+     let thisPlayer = find (==fakePlayer) playersOnlineList -- get the player from the list
+     let foundThisPlayer = fromMaybe (error "The Player isn't logged in") thisPlayer
+     return foundThisPlayer
