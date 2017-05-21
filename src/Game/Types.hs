@@ -15,7 +15,7 @@ data Card = Tempura
           | SquidNigiri
           | EggNigiri
           | Pudding
-          | Wasabi
+          | Wasabi { plusCard :: Card}
           | Chopsticks
           deriving (Show, Read, Eq, Ord)
 
@@ -32,7 +32,6 @@ instance Ord Player where
 
 data PlayerState = PlayerState { gameHand     :: Deck
                                , cardsOnTable :: Deck
-                               , wasabi       :: Bool
                                , turn         :: Int
                                } deriving (Show)
 
