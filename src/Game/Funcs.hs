@@ -119,6 +119,7 @@ putCardOnTable (card,player@Player{..}) = player {state = newState}
 playCardFromPlayer :: Card -> Player -> Player
 playCardFromPlayer card player = putCardOnTable $ takeCardFromPlayer card player
 
+
 applyMoveToPlayer :: Move -> Player -> Player
 applyMoveToPlayer (PlayCard card) player                    = playCardFromPlayer card player
 applyMoveToPlayer (SpecialMoveChopStick card1 card2) player = bringChopstickBack playerAfter
@@ -150,9 +151,19 @@ correctTurn Player{..} inputTurn = inputTurn == turn state
 
 -- I need to check if the round is correct, and i need to implement the play checker and stuff
 
-checkValidMove :: Player -> Move -> GameState -> Bool
--- checkValidMove player move game = coise
-checkValidMove = undefined
+checkValidMove :: Move -> Player -> GameState -> Bool
+checkValidMove move player game =
+    case move of
+        SpecialMoveChopStick card1 card2 -> checkSpecialMoveValidity card1 card2 player game
+        PlayCard card -> checkRegularMoveValidy card player game
+
+checkSpecialMoveValidity :: Card -> Card -> Player -> GameState -> Bool
+checkSpecialMoveValidity = undefined
+
+
+checkRegularMoveValidy ::  Card -> Player -> GameState -> Bool
+checkRegularMoveValidy = undefined
+
 
 whoseTurn :: Player -> [Player] -> Player
 whoseTurn currentPlayer playerList = nextPlayer

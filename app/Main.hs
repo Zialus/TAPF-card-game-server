@@ -113,7 +113,8 @@ joinRequest = do
               let thisPlayer = find (==fakePlayer) playersOnlineList
 
               --   let foundThisPlayer = fromMaybe (error "couldn't find the player in the online list") thisPlayer
-            --   foundThisPlayer <- findPlayerByID playerID gameServer
+              --   foundThisPlayer <- findPlayerByID playerID gameServer
+
 
               case thisPlayer of
                   Nothing     -> text "player isn't online, therefore can't join a game"
