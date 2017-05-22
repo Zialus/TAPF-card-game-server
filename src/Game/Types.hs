@@ -15,7 +15,7 @@ data Card = Tempura
           | SquidNigiri
           | EggNigiri
           | Pudding
-          | Wasabi { plusCard :: Card}
+          | Wasabi { plusCard :: Maybe Card}
           | Chopsticks
           deriving (Show, Read, Eq, Ord)
 

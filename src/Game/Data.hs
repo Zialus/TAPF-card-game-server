@@ -13,7 +13,7 @@ allcardsDeck =     replicate 14  Tempura  ++
                    replicate 5   SquidNigiri  ++
                    replicate 5   EggNigiri  ++
                    replicate 10  Pudding  ++
-                   replicate 6   Wasabi  ++
+                   replicate 6   Wasabi {plusCard = Nothing} ++
                    replicate 4   Chopsticks
 
 amountToDistributeMap :: [(Int,Int)]
