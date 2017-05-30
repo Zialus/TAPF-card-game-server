@@ -1,6 +1,6 @@
-module Lib (findBy, equalling,maybeRead,count,iterateNTimes,shuffle', whereIsIt,removeAtIdx) where
+module Lib (findBy, equalling,maybeRead,count,iterateNTimes,shuffle', whereIsIt,removeAtIdx,splitEvery) where
 
-import           Data.Maybe (listToMaybe)
+import           Data.Maybe       (listToMaybe)
 
 import           Control.Monad
 import           Control.Monad.ST
@@ -9,6 +9,14 @@ import           System.Random
 
 import           Data.Array.ST
 import           Data.STRef
+
+
+splitEvery :: Int -> [t] -> [[t]]
+splitEvery _ [] = []
+splitEvery n list = first : splitEvery n rest
+  where
+    (first,rest) = splitAt n list
+
 
 whereIsIt :: Eq a => a -> [[a]] -> Maybe Int
 whereIsIt e l = whereIsIt' e l 0
