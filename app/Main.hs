@@ -74,12 +74,7 @@ app = do
         let initialDeck = (allcardsDeck,seedForDeck)
         currentDeck <- liftIO $ newMVar initialDeck
         get root $
-            text "Hello World!"
-
-        -- get ("hello" <//> var) $ \name -> do
-        --         (DummyAppState ref) <- getState
-        --         visitorNumber <- liftIO $ atomicModifyIORef' ref $ \i -> (i+1, i+1)
-        --         text ("Hello " <> name <> ", you are visitor number " <> T.pack (show visitorNumber))
+            text "Haskell is fun!!"
 
         get "shuffle" $ do
             deck <- liftIO $ takeMVar currentDeck
@@ -108,13 +103,9 @@ joinRequest = do
               let roomID = roomIDtoJoin gameInfo
               let playerID = userIDJoinning gameInfo
 
-              let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
+              let fakePlayer = Player {pid= playerID, pname = undefined, state = undefined}
               playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
               let thisPlayer = find (==fakePlayer) playersOnlineList
-
-              --   let foundThisPlayer = fromMaybe (error "couldn't find the player in the online list") thisPlayer
-              --   foundThisPlayer <- findPlayerByID playerID gameServer
-
 
               case thisPlayer of
                   Nothing     -> text "player isn't online, therefore can't join a game"
@@ -165,8 +156,6 @@ createRequest = do
                     let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
                     playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
                     let thisPlayer = find (==fakePlayer) playersOnlineList
-
-                    -- let foundThisPlayer = fromMaybe (error "player isn't online, therefore can't create a game") thisPlayer
 
                     case thisPlayer of
                         Nothing     -> text "player isn't online, therefore can't create a game"
@@ -238,8 +227,6 @@ playRequest = do
                             let gameToPlay = fromMaybe (error "That game does not exist") maybeGameToJoin
                             let serverListTmp = deleteBy ( equalling fst ) (roomID,undefined) listOfGamesInServer
 
-                            let (game_id,game_state) = gameToPlay
-
                             let moveTypeInList = words moveText
 
                             let moveType = moveTypeInList !! 0
@@ -248,27 +235,37 @@ playRequest = do
                               "PlayCard" -> do
                                   let card = moveTypeInList !! 1
                                   let move = PlayCard (read card :: Card)
-                                  liftIO $ print move
-                                  let gameStateAfterMove = applyMoveToGame foundThisPlayer move game_state
-                                  let gameAfterStateUpdate = (game_id,gameStateAfterMove)
-                                  liftIO $ print gameAfterStateUpdate
-                                  let serverPlusUpdatedGame = insertBy (comparing fst) gameAfterStateUpdate serverListTmp
-                                  liftIO $ putMVar (gameList gameServer) serverPlusUpdatedGame
+                                  _ <- applyTheMove move foundThisPlayer gameToPlay serverListTmp gameServer
                                   text "The move has been applied to the game"
                               "SpecialMoveChopStick" -> do
                                   let card1 = moveTypeInList !! 1
                                   let card2 = moveTypeInList !! 2
                                   let move = SpecialMoveChopStick (read card1 :: Card) (read card2 :: Card)
-                                  liftIO $ print move
-                                  let gameStateAfterMove = applyMoveToGame foundThisPlayer move game_state
-                                  let gameAfterStateUpdate = (game_id,gameStateAfterMove)
-                                  liftIO $ print gameAfterStateUpdate
-                                  let serverPlusUpdatedGame = insertBy (comparing fst) gameAfterStateUpdate serverListTmp
-                                  liftIO $ putMVar (gameList gameServer) serverPlusUpdatedGame
+                                  _ <- applyTheMove move foundThisPlayer gameToPlay serverListTmp gameServer
                                   text "not finished"
                               _ -> do
                                   _ <- error "this won't happen"
                                   text "ths will never happen"
+
+
+applyTheMove :: Move -> Player -> (Int,GameState) -> [(Int,GameState)]-> GameServer -> Handler ()
+applyTheMove move foundThisPlayer gameToPlay serverListTmp gameServer = do
+    let (game_id,game_state) = gameToPlay
+    liftIO $ print move
+    let gameStateAfterMove = applyMoveToGame foundThisPlayer move game_state
+    let gameAfterStateUpdate = (game_id,gameStateAfterMove)
+    liftIO $ print gameAfterStateUpdate
+    let serverPlusUpdatedGame = insertBy (comparing fst) gameAfterStateUpdate serverListTmp
+    liftIO $ putMVar (gameList gameServer) serverPlusUpdatedGame
+
+
+findPlayerByID :: Int -> GameServer -> Handler Player
+findPlayerByID playerID gameServer = do
+     let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
+     playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
+     let thisPlayer = find (==fakePlayer) playersOnlineList -- get the player from the list
+     let foundThisPlayer = fromMaybe (error "The Player isn't logged in") thisPlayer
+     return foundThisPlayer
 
 
 
@@ -304,12 +301,3 @@ instance ToJSON UserLoginInfo
 
 instance FromJSON CreateGameInfo
 instance ToJSON CreateGameInfo
-
-
-findPlayerByID :: Int -> GameServer -> Handler Player
-findPlayerByID playerID gameServer = do
-     let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
-     playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
-     let thisPlayer = find (==fakePlayer) playersOnlineList -- get the player from the list
-     let foundThisPlayer = fromMaybe (error "The Player isn't logged in") thisPlayer
-     return foundThisPlayer

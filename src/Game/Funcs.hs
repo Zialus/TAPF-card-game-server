@@ -2,8 +2,8 @@
 
 module Game.Funcs where
 
-import           Data.List        (delete, elemIndex, find, insert)
-import           Data.Maybe       (fromMaybe)
+import           Data.List  (delete, elemIndex, find, insert)
+import           Data.Maybe (fromMaybe)
 
 import           Game.Data
 import           Game.Types
@@ -35,8 +35,19 @@ giveCardsToPlayers (deckcards,deckstate) playerList amountOfCards = (exitState,e
             (_,_, exitPlayerList,exitState) = iterateNTimes amount auxToIterate (amountOfCards, 0, playerList, (deckcards,deckstate))
 
 
-startGame :: GameState -> GameState
-startGame = distributeCards
+-- auxGiveCards :: Int -> [Player] -> [Deck] -> Deck -> ([Player],Deck)
+-- auxGiveCards cardsAmount playerList dividedCards deckcards = (exitPlayerList,exitDeckState)
+--         where
+--           num_players = length playerList
+--           exitDeckState = drop (cardsAmount * num_players) deckcards
+--           exitPlayerList = playerList ----------- WRONG!!!!!!
+--
+-- giveCardsToPlayers :: DeckState -> [Player] -> Int -> (DeckState,[Player])
+-- giveCardsToPlayers (deckcards,deckstate) playerList amountOfCards = (exitState,exitPlayerList)
+--         where
+--             dividedDeck = splitEvery amountOfCards deckcards
+--             (exitPlayerList,deckAfter) = auxGiveCards amountOfCards playerList dividedDeck deckcards
+--             exitState = (deckAfter,deckstate)
 
 distributeCards :: GameState -> GameState
 distributeCards game@GameState{..} = exitState
@@ -46,6 +57,10 @@ distributeCards game@GameState{..} = exitState
             shuffledDeck = shuffleDeck deckState
             (deckAfterRemovingCards,playerList) = giveCardsToPlayers shuffledDeck players howManyCards
             exitState = game {deckState = deckAfterRemovingCards, players = playerList}
+
+
+startGame :: GameState -> GameState
+startGame = distributeCards
 
 
 removePuddings :: Deck -> Int -> Deck
@@ -64,6 +79,7 @@ calculatePuddings GameState{..} = amountOfPuddings
             puddingsPerPlayer = map findPuddings players
             amountOfPuddings = sum puddingsPerPlayer
 
+
 deckForNextRound :: GameState -> DeckState
 deckForNextRound gs@GameState{..} = newDeck
         where
@@ -78,6 +94,7 @@ cleanPlayer player@Player{..} = newPlayer
         where
             newPlayerState = state {gameHand = []}
             newPlayer = player {state = newPlayerState}
+
 
 nextRound :: GameState -> GameState
 nextRound gs@GameState{..} = nextRoundGameState
@@ -99,6 +116,7 @@ bringChopstickBack player@Player{..} = player {state = newState}
             newCardsOnTable = delete Chopsticks (cardsOnTable state)
             newState = state {cardsOnTable = newCardsOnTable, gameHand = newHand}
 
+
 takeCardFromHand :: [Card] -> Card -> [Card]
 takeCardFromHand gameHand card = delete card gameHand
 
@@ -108,6 +126,7 @@ takeCardFromPlayer card player@Player{..} = (card, player {state = newState})
         where
             newHand = takeCardFromHand (gameHand state) card
             newState = state {gameHand = newHand}
+
 
 putCardOnTable :: (Card,Player) -> Player
 putCardOnTable (card,player@Player{..}) = player {state = newState}
@@ -142,7 +161,7 @@ playerHasCardToPlay :: Player -> Card -> Bool
 playerHasCardToPlay Player{..} card =
     case search of
         Nothing -> False
-        Just _ -> True
+        Just _  -> True
     where playerHand = gameHand state
           search = find (==card) playerHand
 
@@ -156,6 +175,7 @@ checkValidMove move player game =
     case move of
         SpecialMoveChopStick card1 card2 -> checkSpecialMoveValidity card1 card2 player game
         PlayCard card -> checkRegularMoveValidy card player game
+
 
 checkSpecialMoveValidity :: Card -> Card -> Player -> GameState -> Bool
 checkSpecialMoveValidity = undefined
