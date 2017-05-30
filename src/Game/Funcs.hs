@@ -99,10 +99,10 @@ cleanPlayer player@Player{..} = newPlayer
 nextRound :: GameState -> GameState
 nextRound gs@GameState{..} = nextRoundGameState
         where
-            nextRoundN = roundN + 1 -- increase the roundNumber
+            nextRoundN = roundG + 1 -- increase the roundNumber
             nextDeck = deckForNextRound gs -- do the necessary changes on the game deck
             nextPlayers = map cleanPlayer players -- clean Players Game Hands
-            nextRoundGameState = gs {roundN = nextRoundN, deckState = nextDeck, players = nextPlayers}
+            nextRoundGameState = gs {roundG = nextRoundN, deckState = nextDeck, players = nextPlayers}
 
 
 shuffleDeck :: DeckState -> DeckState
@@ -157,6 +157,7 @@ applyMoveToGame p mv gs@GameState{..} = newGameState
             newGameState = gs {players = newPlayers}
 
 
+-- check if the player has a card you are expecting
 playerHasCardToPlay :: Player -> Card -> Bool
 playerHasCardToPlay Player{..} card =
     case search of
@@ -165,31 +166,62 @@ playerHasCardToPlay Player{..} card =
     where playerHand = gameHand state
           search = find (==card) playerHand
 
+
+tableHasChopSticks :: Deck -> Bool
+tableHasChopSticks = elem Chopsticks
+
+-- check if Player Turn is the one you are expecting
 correctTurn :: Player -> Int -> Bool
-correctTurn Player{..} inputTurn = inputTurn == turn state
+correctTurn Player{..} inputTurn = inputTurn == turnP state
 
--- I need to check if the round is correct, and i need to implement the play checker and stuff
 
-checkValidMove :: Move -> Player -> GameState -> Bool
-checkValidMove move player game =
+correctRound :: Player -> Int -> Bool
+correctRound Player{..} inputRound = inputRound == roundP state
+
+
+-- check if a play is valid by checking if a move is valid, and if the round/turn number is valid
+checkValidPlay :: Move -> Player -> GameState -> Bool
+checkValidPlay move player game = condition1 && condition2 && condition3
+    where
+      condition1 = checkValidMove move player
+      condition2 = correctRound player $ roundG game
+      condition3 = correctTurn player $ turnG game
+
+
+-- check if a move is valid by calling the correct move-checker depending on move type
+checkValidMove :: Move -> Player -> Bool
+checkValidMove move player =
     case move of
-        SpecialMoveChopStick card1 card2 -> checkSpecialMoveValidity card1 card2 player game
-        PlayCard card -> checkRegularMoveValidy card player game
+        SpecialMoveChopStick card1 card2 -> checkSpecialMoveValidity card1 card2 player
+        PlayCard card -> checkRegularMoveValidy card player
 
 
-checkSpecialMoveValidity :: Card -> Card -> Player -> GameState -> Bool
-checkSpecialMoveValidity = undefined
+checkSpecialMoveValidity :: Card -> Card -> Player -> Bool
+checkSpecialMoveValidity card1 card2 player = condition1 && condition2 && condition3
+    where
+      condition1 = playerHasCardToPlay player card1
+      condition2 = playerHasCardToPlay player card2
+      condition3 = tableHasChopSticks $ cardsOnTable $ state player
+
+checkRegularMoveValidy ::  Card -> Player -> Bool
+checkRegularMoveValidy card player = condition
+    where
+      condition = playerHasCardToPlay player card
 
 
-checkRegularMoveValidy ::  Card -> Player -> GameState -> Bool
-checkRegularMoveValidy = undefined
-
-
-whoseTurn :: Player -> [Player] -> Player
-whoseTurn currentPlayer playerList = nextPlayer
+whoGetsNextTurn :: Player -> [Player] -> Player
+whoGetsNextTurn currentPlayer playerList = nextPlayer
         where
             maybePlayerIndex = elemIndex currentPlayer playerList
             playerIndex = fromMaybe (error "couldn't find the index of the player") maybePlayerIndex
             numberOfPlayers = length playerList
             nextPlayerIndex = (playerIndex + 1) `mod` numberOfPlayers
             nextPlayer = playerList !! nextPlayerIndex
+
+
+calculateScore :: GameState -> GameState
+calculateScore = undefined
+
+
+howManyCardsOnThisPlayerHand :: Player -> Int
+howManyCardsOnThisPlayerHand player = length $ gameHand $ state player

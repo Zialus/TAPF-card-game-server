@@ -51,14 +51,17 @@ newServer = do
 newGameState :: Int -> StdGen -> Player -> GameState
 newGameState numP seed initialPlayer = newGameRoom
         where newGameRoom = GameState { deckState = (allcardsDeck,seed)
-                                      , roundN = 0
+                                      , roundG = 0
+                                      , turnG = 0
                                       , numPlayers = numP
                                       , players = [initialPlayer]
                                       }
 newPlayerState :: PlayerState
 newPlayerState = PlayerState { gameHand = []
                              , cardsOnTable = []
-                             , turn = 0
+                             , roundP = 0
+                             , turnP = 0
+                             , score = 0
                              }
 
 main :: IO ()

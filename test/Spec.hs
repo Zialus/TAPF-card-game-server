@@ -8,8 +8,8 @@ import           Test.QuickCheck
 main :: IO ()
 main = quickCheck prop_Conserv_Cards
 
-prop_Conserv_Cards gs = length beforeDeck == (length afterDeck + length afterPlayers)
-   where types = (gs::GameState, beforeDeck :: Deck, afterDeck :: Deck, afterPlayers :: [Player])
+prop_Conserv_Cards gs = length beforeDeck == (length afterDeck + sum (map howManyCardsOnThisPlayerHand afterPlayers))
+   where types = (gs::GameState)
          beforeDeck = fst $ deckState gs
          gameStateAfterDistribution = distributeCards gs
          afterDeck = fst $ deckState gameStateAfterDistribution
@@ -28,16 +28,17 @@ genDeckState = do
 
 genDeck :: Gen Deck
 genDeck = do
-  cards <- vectorOf 100 $ elements allcardsDeck
+  cards <- vectorOf 108 $ elements allcardsDeck
   return cards
 
 genGameState :: Gen GameState
 genGameState = do
     num_players <- choose (3,5)
-    round_n <- choose (1,5)
+    _roundG <- choose (1,5)
+    _turnG <- choose(1,5)
     various_players <- vectorOf num_players genPlayer
     deck_state <- genDeckState
-    return GameState {deckState = deck_state , roundN = round_n, numPlayers = num_players, players  = various_players}
+    return GameState {deckState = deck_state , roundG = _roundG, turnG = _turnG, numPlayers = num_players, players  = various_players}
 
 genPlayer :: Gen Player
 genPlayer = do
@@ -48,7 +49,9 @@ genPlayer = do
 
 genPlayerState :: Gen PlayerState
 genPlayerState = do
-  game_hand <- vectorOf 5 $ elements allcardsDeck
-  cards_on_table <- vectorOf 5 $ elements allcardsDeck
-  _turn_ <- choose(1,7)
-  return PlayerState {gameHand = game_hand, cardsOnTable = cards_on_table, turn = _turn_}
+  game_hand <- vectorOf 0 $ elements allcardsDeck
+  cards_on_table <- vectorOf 0 $ elements allcardsDeck
+  _turnP <- choose(1,5)
+  _roundP <- choose(1,5)
+  _score <- choose(1,100)
+  return PlayerState {gameHand = game_hand, cardsOnTable = cards_on_table, turnP = _turnP, roundP = _roundP, score = _score}

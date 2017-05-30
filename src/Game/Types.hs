@@ -32,11 +32,14 @@ instance Ord Player where
 
 data PlayerState = PlayerState { gameHand     :: Deck
                                , cardsOnTable :: Deck
-                               , turn         :: Int
+                               , turnP        :: Int
+                               , score        :: Int
+                               , roundP       :: Int
                                } deriving (Show)
 
 data GameState = GameState { deckState  :: DeckState
-                           , roundN     :: Int
+                           , roundG     :: Int
+                           , turnG      :: Int
                            , numPlayers :: Int
                            , players    :: [Player]
                            } deriving (Show)
