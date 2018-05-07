@@ -8,6 +8,8 @@ import           Test.QuickCheck
 main :: IO ()
 main = quickCheck prop_Conserv_Cards
 
+-- !!!!!! Not working !!!!
+prop_Conserv_Cards :: GameState -> Bool
 prop_Conserv_Cards gs = length beforeDeck == (length afterDeck + sum (map howManyCardsOnThisPlayerHand afterPlayers))
    where types = (gs::GameState)
          beforeDeck = fst $ deckState gs

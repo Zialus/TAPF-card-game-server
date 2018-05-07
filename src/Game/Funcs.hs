@@ -219,8 +219,8 @@ whoGetsNextTurn currentPlayer playerList = nextPlayer
             nextPlayer = playerList !! nextPlayerIndex
 
 
-calculateScore :: GameState -> GameState
-calculateScore = undefined
+calculateScores :: GameState -> GameState
+calculateScores = undefined
 
 
 howManyCardsOnThisPlayerHand :: Player -> Int
