@@ -1,4 +1,3 @@
-# Disable the standard build process which would use MSBuild:
 build: off
 
 before_test:
@@ -8,13 +7,27 @@ before_test:
 - curl -sS -ostack.zip -L --insecure https://get.haskellstack.org/stable/windows-x86_64.zip
 - 7z x stack.zip stack.exe
 
-cache:
-- "c:\\sr" # stack root, short paths == fewer problems
 clone_folder: "c:\\stack"
 environment:
   global:
     STACK_ROOT: "c:\\sr"
 
+    # Override the temp directory to avoid sed escaping issues
+    # See https://github.com/haskell/cabal/issues/5386
+    TMP: "c:\\tmp"
+
+  matrix:
+  - ARGS: ""
+  - ARGS: "--resolver lts-7"
+  - ARGS: "--resolver lts-9"
+  - ARGS: "--resolver lts-11"
+  - ARGS: "--resolver lts-12"
+
 test_script:
-- stack --no-terminal setup > nul
-- stack --no-terminal test --bench
+
+# Install toolchain, but do it silently due to lots of output
+- stack %ARGS% setup > nul
+
+# The ugly echo "" hack is to avoid complaints about 0 being an invalid file
+# descriptor
+- echo "" | stack %ARGS% --no-terminal test --bench
