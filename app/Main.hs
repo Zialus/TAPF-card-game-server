@@ -238,34 +238,34 @@ playRequest = do
                               "PlayCard" -> do
                                   let card = moveTypeInList !! 1
                                   let move = PlayCard (read card :: Card)
-                                  _ <- applyTheMove move foundThisPlayer gameToPlay serverListTmp gameServer
+                                  liftIO $ applyTheMove move foundThisPlayer gameToPlay serverListTmp gameServer
                                   text "The move has been applied to the game"
                               "SpecialMoveChopStick" -> do
                                   let card1 = moveTypeInList !! 1
                                   let card2 = moveTypeInList !! 2
                                   let move = SpecialMoveChopStick (read card1 :: Card) (read card2 :: Card)
-                                  _ <- applyTheMove move foundThisPlayer gameToPlay serverListTmp gameServer
+                                  liftIO $ applyTheMove move foundThisPlayer gameToPlay serverListTmp gameServer
                                   text "not finished"
                               _ -> do
                                   _ <- error "this won't happen"
                                   text "ths will never happen"
 
 
-applyTheMove :: Move -> Player -> (Int,GameState) -> [(Int,GameState)]-> GameServer -> Handler ()
+applyTheMove :: Move -> Player -> (Int,GameState) -> [(Int,GameState)]-> GameServer -> IO ()
 applyTheMove move foundThisPlayer gameToPlay serverListTmp gameServer = do
     let (game_id,game_state) = gameToPlay
-    liftIO $ print move
+    print move
     let gameStateAfterMove = applyMoveToGame foundThisPlayer move game_state
     let gameAfterStateUpdate = (game_id,gameStateAfterMove)
-    liftIO $ print gameAfterStateUpdate
+    print gameAfterStateUpdate
     let serverPlusUpdatedGame = insertBy (comparing fst) gameAfterStateUpdate serverListTmp
-    liftIO $ putMVar (gameList gameServer) serverPlusUpdatedGame
+    putMVar (gameList gameServer) serverPlusUpdatedGame
 
 
-findPlayerByID :: Int -> GameServer -> Handler Player
+findPlayerByID :: Int -> GameServer -> IO Player
 findPlayerByID playerID gameServer = do
      let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
-     playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
+     playersOnlineList <- readMVar (playersOnline gameServer)
      let thisPlayer = find (==fakePlayer) playersOnlineList -- get the player from the list
      let foundThisPlayer = fromMaybe (error "The Player isn't logged in") thisPlayer
      return foundThisPlayer
