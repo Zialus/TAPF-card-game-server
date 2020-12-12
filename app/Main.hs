@@ -219,7 +219,7 @@ playRequest = do
 
                       case maybeRead moveText :: Maybe Move of
                           Nothing -> text "Not a valid move type"
-                          Just _ ->   do
+                          Just moveType ->   do
                             let fakePlayer = Player {pid= playerID, pname = undefined, state =  undefined}
                             playersOnlineList <- liftIO $ readMVar (playersOnline gameServer)
                             let thisPlayer = find (==fakePlayer) playersOnlineList -- get the player from the list
@@ -230,25 +230,15 @@ playRequest = do
                             let gameToPlay = fromMaybe (error "That game does not exist") maybeGameToJoin
                             let serverListTmp = deleteBy ( equalling fst ) (roomID,undefined) listOfGamesInServer
 
-                            let moveTypeInList = words moveText
-
-                            let moveType = moveTypeInList !! 0
-
                             case moveType of
-                              "PlayCard" -> do
-                                  let card = moveTypeInList !! 1
-                                  let move = PlayCard (read card :: Card)
+                              PlayCard card -> do
+                                  let move = PlayCard card
                                   liftIO $ applyTheMove move foundThisPlayer gameToPlay serverListTmp gameServer
                                   text "The move has been applied to the game"
-                              "SpecialMoveChopStick" -> do
-                                  let card1 = moveTypeInList !! 1
-                                  let card2 = moveTypeInList !! 2
-                                  let move = SpecialMoveChopStick (read card1 :: Card) (read card2 :: Card)
+                              SpecialMoveChopStick card1 card2 -> do
+                                  let move = SpecialMoveChopStick card1 card2
                                   liftIO $ applyTheMove move foundThisPlayer gameToPlay serverListTmp gameServer
                                   text "not finished"
-                              _ -> do
-                                  _ <- error "this won't happen"
-                                  text "ths will never happen"
 
 
 applyTheMove :: Move -> Player -> (Int,GameState) -> [(Int,GameState)]-> GameServer -> IO ()
