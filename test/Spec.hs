@@ -25,8 +25,8 @@ genDeckState :: Gen DeckState
 genDeckState = do
   deck <- genDeck
   number <- choose (0,9999)
-  let state = mkStdGen number
-  return (deck,state)
+  let state' = mkStdGen number
+  return (deck,state')
 
 genDeck :: Gen Deck
 genDeck = do
@@ -44,10 +44,10 @@ genGameState = do
 
 genPlayer :: Gen Player
 genPlayer = do
-    pid <- choose(1,40)
-    pname <- elements ["Raul","Tiago","Miguel","Rui","Pedro","José","Daniel","Diogo"]
-    state <- genPlayerState
-    return Player {pid = pid, pname = pname, state = state}
+    _pid <- choose(1,40)
+    _pname <- elements ["Raul","Tiago","Miguel","Rui","Pedro","José","Daniel","Diogo"]
+    _state <- genPlayerState
+    return Player {pid = _pid, pname = _pname, state = _state}
 
 genPlayerState :: Gen PlayerState
 genPlayerState = do
