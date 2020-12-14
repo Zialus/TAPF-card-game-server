@@ -40,6 +40,19 @@ data GameServer = GameServer
     , playerCounter :: IORef Int
     }
 
+data TestStuff = SomeStuff
+    { intRef  :: IORef Int
+    , deckVar :: MVar (Deck,StdGen)
+    }
+
+newTestStuff :: IO TestStuff
+newTestStuff = do
+        _int <- newIORef 0
+        seedForDeck <- liftIO getStdGen
+        let initialDeck = (allcardsDeck,seedForDeck)
+        _deck <- newMVar initialDeck
+        return SomeStuff {intRef = _int, deckVar = _deck}
+
 -- | initialize the server state
 newServer :: IO GameServer
 newServer = do
@@ -66,24 +79,22 @@ newPlayerState = PlayerState { gameHand = []
 
 main :: IO ()
 main = do
-        -- ref <- newIORef 0
         gameServer <- liftIO newServer
         spockCfg <- defaultSpockCfg EmptySession PCNoDatabase (DummyAppState gameServer)
         runSpock 8080 (spock spockCfg app)
 
 app :: SpockM () MySession MyAppState ()
 app = do
-        seedForDeck <- liftIO getStdGen
-        let initialDeck = (allcardsDeck,seedForDeck)
-        currentDeck <- liftIO $ newMVar initialDeck
+        testStuff <- liftIO newTestStuff
         get root $
             text "Haskell is fun!!"
 
         get "shuffle" $ do
-            deck <- liftIO $ takeMVar currentDeck
+            deck <- liftIO $ takeMVar (deckVar testStuff)
             let (currentBoard, currentState) = shuffleDeck deck
-            liftIO $ putMVar currentDeck (currentBoard, currentState)
-            text  ("Current state of the Deck: " <> T.pack ( show currentBoard ))
+            liftIO $ putMVar (deckVar testStuff) (currentBoard, currentState)
+            shuffleNumber <- liftIO $ atomicModifyIORef' (intRef testStuff) $ \i -> (i+1, i+1)
+            text  ("Current state of the Deck: " <> T.pack ( show currentBoard ) <> "\nThe deck has been shuffled " <> T.pack (show shuffleNumber) <> " times")
 
         post "create" createRequest
 
@@ -92,6 +103,8 @@ app = do
         post "login" loginRequest
 
         post "play" playRequest
+
+        liftIO $ print "Registered all endpoints"
 
 joinRequest :: Handler ()
 joinRequest = do
