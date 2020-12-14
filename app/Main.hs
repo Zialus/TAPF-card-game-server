@@ -104,7 +104,7 @@ app = do
 
         post "play" playRequest
 
-        liftIO $ print "Registered all endpoints"
+        liftIO $ print ("Registered all endpoints" :: String)
 
 joinRequest :: Handler ()
 joinRequest = do

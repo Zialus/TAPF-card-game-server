@@ -81,7 +81,7 @@ calculatePuddings GameState{..} = amountOfPuddings
 
 
 deckForNextRound :: GameState -> DeckState
-deckForNextRound gs@GameState{..} = newDeck
+deckForNextRound gs = newDeck
         where
             (deck,state) = (allcardsDeck,state) -- put all cards back in the deck
             puddingAmount = calculatePuddings gs -- find out how many pudding cards where played in the previous round
