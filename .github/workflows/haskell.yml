@@ -20,18 +20,15 @@ jobs:
           - "8.4.4"
           - "8.6.5"
           - "8.8.4"
-          - "8.10.2"
-        exclude:
-          # zlib is broken
-          - os: windows-latest
-            ghc: "8.10.2"
+          - "8.10.4"
+          # - "9.0.1"
 
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
     - name: Setup Cabal and GHC
-      uses: actions/setup-haskell@v1
+      uses: haskell/actions/setup@v1
       with:
         ghc-version: ${{ matrix.ghc }}
 
