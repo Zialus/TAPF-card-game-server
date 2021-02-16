@@ -27,6 +27,7 @@ import           Game.Funcs
 import           Game.Types
 
 import           Lib
+import           System.Environment      (lookupEnv)
 
 data MySession = EmptySession
 data MyAppState = DummyAppState GameServer
@@ -79,9 +80,11 @@ newPlayerState = PlayerState { gameHand = []
 
 main :: IO ()
 main = do
+        envPort <- liftIO $ lookupEnv "PORT"
+        let port = read $ fromMaybe "8080" envPort
         gameServer <- liftIO newServer
         spockCfg <- defaultSpockCfg EmptySession PCNoDatabase (DummyAppState gameServer)
-        runSpock 8080 (spock spockCfg app)
+        runSpock port (spock spockCfg app)
 
 app :: SpockM () MySession MyAppState ()
 app = do
