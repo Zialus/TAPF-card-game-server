@@ -35,7 +35,7 @@ genDeck = do
 
 genGameState :: Gen GameState
 genGameState = do
-    num_players <- choose (3,5)
+    num_players <- choose (2,5)
     _roundG <- choose (1,5)
     _turnG <- choose(1,5)
     various_players <- vectorOf num_players genPlayer
