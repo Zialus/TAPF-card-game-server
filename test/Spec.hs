@@ -29,9 +29,7 @@ genDeckState = do
   return (deck,state')
 
 genDeck :: Gen Deck
-genDeck = do
-  cards <- vectorOf 108 $ elements allcardsDeck
-  return cards
+genDeck = do vectorOf 108 $ elements allcardsDeck
 
 genGameState :: Gen GameState
 genGameState = do
