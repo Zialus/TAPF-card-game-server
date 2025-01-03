@@ -20,7 +20,6 @@ jobs:
           - "9.0.2"
           - "9.2.8"
           - "9.4.8"
-          - "9.6.2"
 
     steps:
     - name: Checkout
@@ -73,7 +72,11 @@ jobs:
         stack-resolver:
           # - "--resolver nightly"  # stack nightly
           - ""  # default
-          - "--resolver lts-21.3"  # ghc 9.4.5
+          - "--resolver lts-22.6"  # ghc 9.6.3
+          - "--resolver lts-21.25"  # ghc 9.4.8
+          - "--resolver lts-21.21"  # ghc 9.4.7
+          - "--resolver lts-21.11"  # ghc 9.4.6
+          - "--resolver lts-21.7"  # ghc 9.4.5
           - "--resolver lts-20.26"  # ghc 9.2.8
           - "--resolver lts-20.24"  # ghc 9.2.7
           - "--resolver lts-20.12"  # ghc 8.2.6
@@ -81,8 +84,6 @@ jobs:
           - "--resolver lts-12.26"  # ghc 8.4.4
           - "--resolver lts-12.14"  # ghc 8.4.3
           - "--resolver lts-11.22"  # ghc 8.2.2
-          - "--resolver lts-9.21"  # ghc 8.0.2
-          - "--resolver lts-7.24"  # ghc 8.0.1
         # exclude:
           # aeson is broken
           # - os: macOS-15
