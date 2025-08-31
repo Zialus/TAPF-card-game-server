@@ -83,10 +83,10 @@ jobs:
         exclude:
           # LLVM is too old
           - os: macos-15
-            stack-resolver: "--resolver lts-18.28"
+            stack-resolver: "--resolver lts-12.26"
           # LLVM is too old
           - os: macos-15
-            stack-resolver: "--resolver lts-19.33"
+            stack-resolver: "--resolver lts-12.14"
 
     steps:
     - name: Checkout
