@@ -16,10 +16,9 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macOS-15, windows-2025]
         ghc:
-          - "8.10.7"
-          - "9.0.2"
           - "9.2.8"
           - "9.4.8"
+          - "9.6.7"
 
     steps:
     - name: Checkout
@@ -32,7 +31,7 @@ jobs:
 
     - name: Cache Linux/Mac
       uses: actions/cache@v4
-      if: ${{ matrix.os != 'windows-latest' }}
+      if: ${{ matrix.os != 'windows-2025' }}
       with:
         path: ~/.cabal
         key: -${{ runner.os }}-${{ matrix.ghc }}-build-${{ hashFiles('**/*.cabal') }}-${{ hashFiles('**/cabal.project') }}-
@@ -42,7 +41,7 @@ jobs:
 
     - name: Cache Windows
       uses: actions/cache@v4
-      if: ${{ matrix.os == 'windows-latest' }}
+      if: ${{ matrix.os == 'windows-2025' }}
       with:
         path: C:\sr\
         # path: ~/AppData/Roaming/cabal
@@ -72,7 +71,6 @@ jobs:
         stack-resolver:
           # - "--resolver nightly"  # stack nightly
           - ""  # default
-          - "--resolver lts-22.6"  # ghc 9.6.3
           - "--resolver lts-21.25"  # ghc 9.4.8
           - "--resolver lts-21.21"  # ghc 9.4.7
           - "--resolver lts-21.11"  # ghc 9.4.6
@@ -83,11 +81,7 @@ jobs:
           - "--resolver lts-20.11"  # ghc 9.2.5
           - "--resolver lts-12.26"  # ghc 8.4.4
           - "--resolver lts-12.14"  # ghc 8.4.3
-          - "--resolver lts-11.22"  # ghc 8.2.2
-        # exclude:
-          # aeson is broken
-          # - os: macOS-15
-            # stack-resolver: "--resolver lts-9.21"
+
     steps:
     - name: Checkout
       uses: actions/checkout@v4
