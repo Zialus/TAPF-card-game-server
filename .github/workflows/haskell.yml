@@ -18,7 +18,6 @@ jobs:
         ghc:
           - "9.2.8"
           - "9.4.8"
-          - "9.6.7"
 
     steps:
     - name: Checkout
@@ -81,6 +80,13 @@ jobs:
           - "--resolver lts-20.11"  # ghc 9.2.5
           - "--resolver lts-12.26"  # ghc 8.4.4
           - "--resolver lts-12.14"  # ghc 8.4.3
+        exclude:
+          # LLVM is too old
+          - os: macos-15
+            stack-resolver: "--resolver lts-18.28"
+          # LLVM is too old
+          - os: macos-15
+            stack-resolver: "--resolver lts-19.33"
 
     steps:
     - name: Checkout
