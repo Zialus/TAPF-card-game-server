@@ -22,7 +22,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Setup Cabal and GHC
       uses: haskell-actions/setup@v2
@@ -84,7 +84,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Setup Haskell Stack
       uses: haskell-actions/setup@v2
@@ -94,14 +94,14 @@ jobs:
 
     - name: Cache Linux/Mac
       uses: actions/cache@v4
-      if: ${{ matrix.os != 'windows-latest' }}
+      if: ${{ matrix.os != 'windows-2025' }}
       with:
         path: ~/.stack
         key: -${{ runner.os }}-${{ matrix.stack-resolver }}-
 
     - name: Cache Windows
       uses: actions/cache@v4
-      if: ${{ matrix.os == 'windows-latest' }}
+      if: ${{ matrix.os == 'windows-2025' }}
       with:
         path: C:\sr\
         # path: ~\AppData\Local\Programs\stack
