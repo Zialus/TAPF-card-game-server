@@ -14,22 +14,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macOS-15, windows-2025]
+        os: [ubuntu-24.04, macOS-26, windows-2025]
         ghc:
           - "9.2.8"
           - "9.4.8"
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
     - name: Setup Cabal and GHC
-      uses: haskell-actions/setup@v2
+      uses: haskell-actions/setup@cd0d9bdd65b20557f41bea4dbe43d0b5fbbfe553 # v2.11.0
       with:
         ghc-version: ${{ matrix.ghc }}
 
     - name: Cache Linux/Mac
-      uses: actions/cache@v4
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       if: ${{ matrix.os != 'windows-2025' }}
       with:
         path: ~/.cabal
@@ -39,7 +39,7 @@ jobs:
           -${{ runner.os }}-
 
     - name: Cache Windows
-      uses: actions/cache@v4
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       if: ${{ matrix.os == 'windows-2025' }}
       with:
         path: C:\sr\
@@ -66,7 +66,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macOS-15, windows-2025]
+        os: [ubuntu-24.04, macOS-26, windows-2025]
         stack-resolver:
           # - "--resolver nightly"  # stack nightly
           - ""  # default
@@ -82,31 +82,31 @@ jobs:
           - "--resolver lts-12.14"  # ghc 8.4.3
         exclude:
           # LLVM is too old
-          - os: macos-15
+          - os: macos-26
             stack-resolver: "--resolver lts-12.26"
           # LLVM is too old
-          - os: macos-15
+          - os: macos-26
             stack-resolver: "--resolver lts-12.14"
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
     - name: Setup Haskell Stack
-      uses: haskell-actions/setup@v2
+      uses: haskell-actions/setup@cd0d9bdd65b20557f41bea4dbe43d0b5fbbfe553 # v2.11.0
       with:
         enable-stack: true
         stack-no-global: true
 
     - name: Cache Linux/Mac
-      uses: actions/cache@v4
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       if: ${{ matrix.os != 'windows-2025' }}
       with:
         path: ~/.stack
         key: -${{ runner.os }}-${{ matrix.stack-resolver }}-
 
     - name: Cache Windows
-      uses: actions/cache@v4
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       if: ${{ matrix.os == 'windows-2025' }}
       with:
         path: C:\sr\
