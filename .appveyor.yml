@@ -1,3 +1,5 @@
+image: Visual Studio 2026
+
 environment:
   global:
     STACK_ROOT: "c:\\sr"
@@ -50,7 +52,7 @@ install:
   - 7z x stack.zip stack.exe
 
 before_build:
-  - stack %ARGS% --no-terminal setup --silent
+  - stack %ARGS% --no-terminal setup --verbose
 
 build_script:
   - stack %ARGS% --no-terminal build
