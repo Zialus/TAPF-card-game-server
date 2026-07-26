@@ -50,7 +50,7 @@ install:
   - 7z x stack.zip stack.exe
 
 before_build:
-  - stack %ARGS% --no-terminal setup --silent
+  - stack %ARGS% --no-terminal setup
 
 build_script:
   - stack %ARGS% --no-terminal build
